@@ -9,6 +9,8 @@ import ChecklistPage from './modules/checklist/ChecklistPage';
 import DocumentiPage from './modules/documenti/DocumentiPage';
 import TemplatesPage from './modules/templates/TemplatesPage';
 import CalendarioPage from './modules/calendario/CalendarioPage';
+import ComunicazioniPage from './modules/comunicazioni/ComunicazioniPage';
+import WorkflowPage from './modules/workflow/WorkflowPage';
 
 function ProtectedRoute({ children }) {
   const isAuthenticated = useIsAuthenticated();
@@ -34,6 +36,8 @@ export default function App() {
                   <Route path="/documenti" element={<DocumentiPage />} />
                   <Route path="/templates" element={<TemplatesPage />} />
                   <Route path="/calendario" element={<CalendarioPage />} />
+                  <Route path="/comunicazioni" element={<ComunicazioniPage />} />
+                  <Route path="/workflow" element={<WorkflowPage />} />
                 </Routes>
               </Shell>
             </ProtectedRoute>

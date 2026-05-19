@@ -2,17 +2,11 @@ const express = require('express');
 const { v4: uuidv4 } = require('uuid');
 const { getListItems, getListItemById, createListItem, updateListItem, deleteListItem } = require('../graph/sharepoint');
 const { sendMail } = require('../graph/mail');
+const { riempiTemplate } = require('../utils/templateUtils');
 
 const router = express.Router();
 const LIST_TPL = 'Email_Templates';
 const LIST_LOG = 'Invii_Log';
-
-function riempiTemplate(testo, cliente) {
-  const oggi = new Date().toLocaleDateString('it-IT');
-  return testo
-    .replace(/\{\{dataOggi\}\}/g, oggi)
-    .replace(/\{\{(\w+)\}\}/g, (_, key) => cliente[key] ?? `{{${key}}}`);
-}
 
 router.get('/', async (req, res) => {
   try {

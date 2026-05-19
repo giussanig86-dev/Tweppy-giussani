@@ -1,7 +1,9 @@
 const TIPO_CARTELLA = {
-  visura_camerale: '01 - Vita societaria',
-  carta_identita: '07 - Privacy e GDPR',
+  visura_camerale:   '01 - Vita societaria',
+  carta_identita:    '07 - Privacy e GDPR',
   tessera_sanitaria: '07 - Privacy e GDPR',
+  email_allegati:    '02 - Pratiche',
+  documenti_generati:'02 - Pratiche',
 };
 
 function buildClientFolderPath(ragioneSociale, tipoDocumento) {

@@ -1,9 +1,9 @@
 const express = require('express');
-const { Document, Paragraph, TextRun, Packer, HeadingLevel } = require('docx');
 const { TEMPLATES } = require('../engines/documentiTemplates');
 const { askClaude } = require('../claude/claudeClient');
 const { getListItems, createListItem } = require('../graph/sharepoint');
 const { saveClientDocument } = require('../graph/files');
+const { creaDocx } = require('../utils/docxUtils');
 const { v4: uuidv4 } = require('uuid');
 
 const router = express.Router();
@@ -58,18 +58,5 @@ router.post('/genera', async (req, res) => {
   }
 });
 
-async function creaDocx(titolo, corpo) {
-  const righe = corpo.split('\n');
-  const children = righe.map((riga) => {
-    const isTitle = riga === riga.toUpperCase() && riga.trim().length > 3 && !/^\d/.test(riga);
-    return new Paragraph({
-      children: [new TextRun({ text: riga || ' ', bold: isTitle, size: isTitle ? 26 : 24 })],
-      spacing: { after: riga.trim() === '' ? 100 : 160 },
-    });
-  });
-
-  const doc = new Document({ sections: [{ children }] });
-  return Packer.toBuffer(doc);
-}
 
 module.exports = router;
