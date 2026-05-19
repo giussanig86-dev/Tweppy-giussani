@@ -6,6 +6,8 @@ const authMiddleware = require('./auth/middleware');
 const anagraficaRoutes = require('./routes/anagrafica');
 const tasksRoutes = require('./routes/tasks');
 const ocrRoutes = require('./routes/ocr');
+const checklistRoutes = require('./routes/checklist');
+const documentiRoutes = require('./routes/documenti');
 
 const app = express();
 
@@ -17,6 +19,8 @@ app.get('/health', (_, res) => res.json({ status: 'ok' }));
 app.use('/api/anagrafica', authMiddleware, anagraficaRoutes);
 app.use('/api/tasks', authMiddleware, tasksRoutes);
 app.use('/api/ocr', authMiddleware, ocrRoutes);
+app.use('/api/checklist', authMiddleware, checklistRoutes);
+app.use('/api/documenti', authMiddleware, documentiRoutes);
 
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => console.log(`Backend in ascolto su porta ${PORT}`));

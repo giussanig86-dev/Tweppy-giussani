@@ -5,6 +5,8 @@ import LoginPage from './pages/LoginPage';
 import AnagraficaPage from './modules/anagrafica/AnagraficaPage';
 import TasksPage from './modules/tasks/TasksPage';
 import OcrPage from './modules/ocr/OcrPage';
+import ChecklistPage from './modules/checklist/ChecklistPage';
+import DocumentiPage from './modules/documenti/DocumentiPage';
 
 function ProtectedRoute({ children }) {
   const isAuthenticated = useIsAuthenticated();
@@ -26,6 +28,8 @@ export default function App() {
                   <Route path="/anagrafica" element={<AnagraficaPage />} />
                   <Route path="/tasks" element={<TasksPage />} />
                   <Route path="/ocr" element={<OcrPage />} />
+                  <Route path="/checklist" element={<ChecklistPage />} />
+                  <Route path="/documenti" element={<DocumentiPage />} />
                 </Routes>
               </Shell>
             </ProtectedRoute>
