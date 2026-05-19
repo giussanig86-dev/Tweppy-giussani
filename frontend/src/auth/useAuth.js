@@ -1,7 +1,18 @@
 import { useMsal } from '@azure/msal-react';
 import { loginScopes } from './msalConfig';
 
+const DEMO = import.meta.env.VITE_DEMO_MODE === 'true';
+
 export function useAuth() {
+  if (DEMO) {
+    return {
+      account: { name: 'Giorgio Demo', username: 'giorgio@studiogds.it' },
+      getToken: async () => 'demo-token',
+      login: () => {},
+      logout: () => {},
+    };
+  }
+
   const { instance, accounts } = useMsal();
   const account = accounts[0];
 

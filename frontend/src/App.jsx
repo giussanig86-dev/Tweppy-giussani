@@ -13,9 +13,11 @@ import ComunicazioniPage from './modules/comunicazioni/ComunicazioniPage';
 import WorkflowPage from './modules/workflow/WorkflowPage';
 import ParcellazionePage from './modules/parcellazione/ParcellazionePage';
 
+const DEMO = import.meta.env.VITE_DEMO_MODE === 'true';
+
 function ProtectedRoute({ children }) {
   const isAuthenticated = useIsAuthenticated();
-  return isAuthenticated ? children : <Navigate to="/login" replace />;
+  return (DEMO || isAuthenticated) ? children : <Navigate to="/login" replace />;
 }
 
 export default function App() {

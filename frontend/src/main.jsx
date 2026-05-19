@@ -5,6 +5,7 @@ import { PublicClientApplication } from '@azure/msal-browser';
 import App from './App';
 import { msalConfig } from './auth/msalConfig';
 import './index.css';
+import './demo/axiosMock'; // no-op unless VITE_DEMO_MODE=true
 
 const msalInstance = new PublicClientApplication(msalConfig);
 
