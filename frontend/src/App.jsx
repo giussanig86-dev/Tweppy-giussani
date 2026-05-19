@@ -3,6 +3,8 @@ import { useIsAuthenticated } from '@azure/msal-react';
 import Shell from './components/layout/Shell';
 import LoginPage from './pages/LoginPage';
 import AnagraficaPage from './modules/anagrafica/AnagraficaPage';
+import TasksPage from './modules/tasks/TasksPage';
+import OcrPage from './modules/ocr/OcrPage';
 
 function ProtectedRoute({ children }) {
   const isAuthenticated = useIsAuthenticated();
@@ -22,6 +24,8 @@ export default function App() {
                 <Routes>
                   <Route path="/" element={<Navigate to="/anagrafica" replace />} />
                   <Route path="/anagrafica" element={<AnagraficaPage />} />
+                  <Route path="/tasks" element={<TasksPage />} />
+                  <Route path="/ocr" element={<OcrPage />} />
                 </Routes>
               </Shell>
             </ProtectedRoute>
