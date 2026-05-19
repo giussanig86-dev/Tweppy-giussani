@@ -11,6 +11,7 @@ import TemplatesPage from './modules/templates/TemplatesPage';
 import CalendarioPage from './modules/calendario/CalendarioPage';
 import ComunicazioniPage from './modules/comunicazioni/ComunicazioniPage';
 import WorkflowPage from './modules/workflow/WorkflowPage';
+import ParcellazionePage from './modules/parcellazione/ParcellazionePage';
 
 function ProtectedRoute({ children }) {
   const isAuthenticated = useIsAuthenticated();
@@ -38,6 +39,7 @@ export default function App() {
                   <Route path="/calendario" element={<CalendarioPage />} />
                   <Route path="/comunicazioni" element={<ComunicazioniPage />} />
                   <Route path="/workflow" element={<WorkflowPage />} />
+                  <Route path="/parcellazione" element={<ParcellazionePage />} />
                 </Routes>
               </Shell>
             </ProtectedRoute>

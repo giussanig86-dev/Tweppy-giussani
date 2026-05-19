@@ -1,13 +1,11 @@
 const { v4: uuidv4 } = require('uuid');
 const { getListItems, getListItemById, createListItem } = require('../graph/sharepoint');
 const { saveClientDocument } = require('../graph/files');
-const { askClaude } = require('./claudeClient');
 const { sendMail } = require('../graph/mail');
 const { TEMPLATES } = require('./documentiTemplates');
 const { creaDocx } = require('../utils/docxUtils');
 const { riempiTemplate } = require('../utils/templateUtils');
 
-// Fix circular: require claudeClient directly
 const Anthropic = require('@anthropic-ai/sdk');
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 

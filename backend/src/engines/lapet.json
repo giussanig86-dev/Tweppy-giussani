@@ -1,0 +1,32 @@
+{
+  "anno": 2025,
+  "contributoIntegrativo": 0.04,
+  "iva": 0.22,
+  "voci": [
+    { "id": "mod_730_semplice",          "categoria": "Dichiarazioni", "descrizione": "Modello 730 semplice (solo reddito da lavoro/pensione)", "importoBase": 150 },
+    { "id": "redditi_pf",                "categoria": "Dichiarazioni", "descrizione": "Redditi PF con attività d'impresa o professionale",       "importoBase": 350 },
+    { "id": "redditi_pf_forfettario",    "categoria": "Dichiarazioni", "descrizione": "Redditi PF regime forfettario",                            "importoBase": 250 },
+    { "id": "redditi_sp",                "categoria": "Dichiarazioni", "descrizione": "Redditi società di persone (SP)",                          "importoBase": 600 },
+    { "id": "redditi_sc",                "categoria": "Dichiarazioni", "descrizione": "Redditi società di capitali (IRES)",                       "importoBase": 900 },
+    { "id": "dichiarazione_iva",         "categoria": "IVA",           "descrizione": "Dichiarazione IVA annuale",                                "importoBase": 200 },
+    { "id": "liquidazione_iva_mensile",  "categoria": "IVA",           "descrizione": "Liquidazione IVA mensile",                                 "importoBase": 80  },
+    { "id": "liquidazione_iva_trim",     "categoria": "IVA",           "descrizione": "Liquidazione IVA trimestrale",                             "importoBase": 120 },
+    { "id": "contabilita_forfettario",   "categoria": "Contabilità",   "descrizione": "Tenuta contabilità — regime forfettario (canone annuale)", "importoBase": 600 },
+    { "id": "contabilita_semplificata",  "categoria": "Contabilità",   "descrizione": "Tenuta contabilità semplificata (canone mensile)",         "importoBase": 150 },
+    { "id": "contabilita_ordinaria",     "categoria": "Contabilità",   "descrizione": "Tenuta contabilità ordinaria (canone mensile)",            "importoBase": 300 },
+    { "id": "busta_paga",                "categoria": "Paghe",         "descrizione": "Elaborazione busta paga (per dipendente)",                 "importoBase": 28  },
+    { "id": "f24_ritenute",              "categoria": "Paghe",         "descrizione": "F24 versamento ritenute",                                  "importoBase": 35  },
+    { "id": "modello_770",               "categoria": "Paghe",         "descrizione": "Modello 770",                                              "importoBase": 200 },
+    { "id": "cu_dipendente",             "categoria": "Paghe",         "descrizione": "Certificazione Unica (per dipendente/collaboratore)",      "importoBase": 30  },
+    { "id": "bilancio_ordinario",        "categoria": "Societario",    "descrizione": "Redazione bilancio d'esercizio",                           "importoBase": 900 },
+    { "id": "deposito_bilancio_cciaa",   "categoria": "Societario",    "descrizione": "Deposito bilancio CCIAA (diritti esclusi)",                "importoBase": 180 },
+    { "id": "verbale_assemblea",         "categoria": "Societario",    "descrizione": "Redazione verbale assemblea soci",                         "importoBase": 200 },
+    { "id": "visura_camerale",           "categoria": "Pratiche",      "descrizione": "Visura camerale / estratto CCIAA",                         "importoBase": 25  },
+    { "id": "pratica_agenzia_entrate",   "categoria": "Pratiche",      "descrizione": "Pratica Agenzia delle Entrate (varie)",                    "importoBase": 150 },
+    { "id": "ravvedimento_operoso",      "categoria": "Pratiche",      "descrizione": "Ravvedimento operoso",                                     "importoBase": 120 },
+    { "id": "iscrizione_inps",           "categoria": "Pratiche",      "descrizione": "Iscrizione / variazione INPS artigiani/commercianti",      "importoBase": 100 },
+    { "id": "consulenza_oraria",         "categoria": "Consulenza",    "descrizione": "Consulenza professionale (tariffa oraria)",                "importoBase": 120 },
+    { "id": "consulenza_straordinaria",  "categoria": "Consulenza",    "descrizione": "Consulenza straordinaria / contenzioso",                   "importoBase": 200 },
+    { "id": "privacy_gdpr",              "categoria": "Consulenza",    "descrizione": "Adeguamento Privacy / GDPR",                               "importoBase": 350 }
+  ]
+}
