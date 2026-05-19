@@ -31,4 +31,12 @@ async function deleteListItem(accessToken, listName, itemId) {
     .delete();
 }
 
-module.exports = { getListItems, createListItem, updateListItem, deleteListItem };
+async function getListItemById(accessToken, listName, itemId) {
+  const client = createGraphClient(accessToken);
+  const res = await client
+    .api(`/sites/${SITE_ID}/lists/${listName}/items/${itemId}?expand=fields`)
+    .get();
+  return { id: res.id, ...res.fields };
+}
+
+module.exports = { getListItems, getListItemById, createListItem, updateListItem, deleteListItem };

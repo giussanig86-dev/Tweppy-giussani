@@ -7,6 +7,8 @@ import TasksPage from './modules/tasks/TasksPage';
 import OcrPage from './modules/ocr/OcrPage';
 import ChecklistPage from './modules/checklist/ChecklistPage';
 import DocumentiPage from './modules/documenti/DocumentiPage';
+import TemplatesPage from './modules/templates/TemplatesPage';
+import CalendarioPage from './modules/calendario/CalendarioPage';
 
 function ProtectedRoute({ children }) {
   const isAuthenticated = useIsAuthenticated();
@@ -30,6 +32,8 @@ export default function App() {
                   <Route path="/ocr" element={<OcrPage />} />
                   <Route path="/checklist" element={<ChecklistPage />} />
                   <Route path="/documenti" element={<DocumentiPage />} />
+                  <Route path="/templates" element={<TemplatesPage />} />
+                  <Route path="/calendario" element={<CalendarioPage />} />
                 </Routes>
               </Shell>
             </ProtectedRoute>
