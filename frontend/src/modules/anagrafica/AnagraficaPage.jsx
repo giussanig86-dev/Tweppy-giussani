@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useAuth } from '../../auth/useAuth';
 import { anagraficaApi } from '../../api/anagrafica';
+import { checklistApi } from '../../api/checklist';
 import ClienteTable from './ClienteTable';
 import ClienteForm from './ClienteForm';
 import Button from '../../components/ui/Button';
@@ -40,9 +41,17 @@ export default function AnagraficaPage() {
   async function handleSave(data) {
     const token = await getToken();
     if (selected) {
+      if (data.stato === 'cessato' && selected.stato !== 'cessato') {
+        if (!confirm(`Impostare "${data.ragioneSociale}" come CESSATO?\n\nTutti gli adempimenti dello scadenzario verranno eliminati in modo definitivo.\nContinuare?`)) return;
+      }
       await anagraficaApi.update(token, selected.id, data);
     } else {
-      await anagraficaApi.create(token, data);
+      const created = await anagraficaApi.create(token, data);
+      if (created?.id && data.tipologiaCliente && data.regimeFiscale) {
+        try {
+          await checklistApi.genera(token, { ...data, id: created.id }, new Date().getFullYear());
+        } catch {}
+      }
     }
     closeModal();
     loadClienti();

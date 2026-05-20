@@ -18,6 +18,10 @@ export const checklistApi = {
   genera: (token, cliente, anno) =>
     axios.post(`${BASE}/genera`, { cliente, anno }, { headers: h(token) }).then(r => r.data),
 
+  // Elimina tutti gli adempimenti di un cliente
+  deleteClienteItems: (token, clienteId) =>
+    axios.delete(`${BASE}/cliente/${clienteId}`, { headers: h(token) }).then(r => r.data),
+
   // Aggiorna stato (condiviso)
   updateStato: (token, id, stato, note) =>
     axios.put(`${BASE}/${id}`, { stato, note }, { headers: h(token) }).then(r => r.data),

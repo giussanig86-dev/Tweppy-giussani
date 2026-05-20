@@ -13,7 +13,7 @@ const TIPOLOGIE_CLIENTE = [
 ];
 const TIPOLOGIE_CONTABILITA = ['ordinaria', 'semplificata', 'forfettaria', 'super semplificata', 'nessuna'];
 const REGIMI_FISCALI = ['ordinario', 'forfettario', 'minimi', 'agricolo'];
-const STATI = ['attivo', 'inattivo', 'sospeso'];
+const STATI = ['attivo', 'in_cessazione', 'cessato'];
 const IVA_PERIODICITA = ['mensile', 'trimestrale', 'esonerato'];
 const TIPI_INDIRIZZO = ['sede operativa', 'sede legale alternativa', 'magazzino', 'domicilio fiscale', 'altro'];
 const SPID_PROVIDERS = ['Aruba', 'Poste Italiane', 'InfoCert', 'TIM', 'Namirial', 'Lepida', 'Register.it'];
@@ -160,6 +160,16 @@ export default function ClienteForm({ initial, onSave, onCancel }) {
             <Select value={form.stato} onChange={e => set('stato', e.target.value)}>
               {STATI.map(s => <option key={s} value={s}>{s}</option>)}
             </Select>
+            {form.stato === 'in_cessazione' && (
+              <div className="mt-2 p-2 bg-amber-50 border border-amber-200 rounded-lg text-xs text-amber-700">
+                ⚠ Il cliente è in fase di cessazione. Verrà evidenziato nello scadenzario.
+              </div>
+            )}
+            {form.stato === 'cessato' && (
+              <div className="mt-2 p-2 bg-red-50 border border-red-200 rounded-lg text-xs text-red-700">
+                ⛔ Il cliente è cessato. Salvando, tutti gli adempimenti verranno eliminati.
+              </div>
+            )}
           </Field>
           <Field label="Codice Fiscale" error={errors.codiceFiscale}>
             <Input

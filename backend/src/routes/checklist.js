@@ -32,6 +32,17 @@ router.get('/matrice/:anno', async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
+// Elimina tutti gli adempimenti di un cliente
+router.delete('/cliente/:clienteId', async (req, res) => {
+  try {
+    const safeId = req.params.clienteId.replace(/'/g, "''");
+    const filter = `fields/clienteId eq '${safeId}'`;
+    const items = await getListItems(req.graphToken, LIST, filter);
+    await Promise.all(items.map(i => deleteListItem(req.graphToken, LIST, i.id)));
+    res.json({ eliminati: items.length });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
 // Adempimenti per singolo cliente + anno
 router.get('/:clienteId/:anno', async (req, res) => {
   try {

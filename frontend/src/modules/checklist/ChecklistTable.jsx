@@ -1,14 +1,15 @@
 import { useState } from 'react';
 
-const STATI = ['da_fare', 'in_lavorazione', 'completato'];
+const STATI_CICLO = ['da_fare', 'fatto', 'comunicato', 'da_non_fare'];
 const STATO_STYLE = {
-  da_fare:       { bg: 'bg-gray-100 text-gray-600 hover:bg-gray-200',   label: 'Da fare' },
-  in_lavorazione:{ bg: 'bg-blue-100 text-blue-700 hover:bg-blue-200',   label: 'In lavorazione' },
-  completato:    { bg: 'bg-green-100 text-green-700 hover:bg-green-200', label: 'Completato' },
+  da_fare:      { bg: 'bg-gray-100 text-gray-600 hover:bg-gray-200',   label: 'Da fare' },
+  fatto:        { bg: 'bg-green-100 text-green-700 hover:bg-green-200', label: 'Fatto' },
+  da_non_fare:  { bg: 'bg-red-100 text-red-600 hover:bg-red-200',      label: 'Da non fare' },
+  comunicato:   { bg: 'bg-blue-100 text-blue-700 hover:bg-blue-200',   label: 'Comunicato' },
 };
 
 function isScaduto(scadenza, stato) {
-  return stato !== 'completato' && new Date(scadenza) < new Date();
+  return stato === 'da_fare' && new Date(scadenza) < new Date();
 }
 
 function formatData(d) {
@@ -27,14 +28,14 @@ export default function ChecklistTable({ items, onStatoChange }) {
   }
 
   function advanceStato(item) {
-    const idx = STATI.indexOf(item.stato);
-    const next = STATI[(idx + 1) % STATI.length];
+    const idx = STATI_CICLO.indexOf(item.stato);
+    const next = STATI_CICLO[(idx + 1) % STATI_CICLO.length];
     onStatoChange(item.id, next, item.note);
   }
 
   function statsPerCategoria(cat) {
     const catItems = items.filter((i) => i.categoria === cat);
-    const done = catItems.filter((i) => i.stato === 'completato').length;
+    const done = catItems.filter((i) => i.stato === 'fatto').length;
     return { tot: catItems.length, done };
   }
 
@@ -92,9 +93,9 @@ export default function ChecklistTable({ items, onStatoChange }) {
                         <td className="px-5 py-2.5">
                           <button
                             onClick={() => advanceStato(item)}
-                            className={`px-2.5 py-1 rounded-full text-xs font-medium transition cursor-pointer ${STATO_STYLE[item.stato]?.bg}`}
+                            className={`px-2.5 py-1 rounded-full text-xs font-medium transition cursor-pointer ${STATO_STYLE[item.stato]?.bg || STATO_STYLE.da_fare.bg}`}
                           >
-                            {STATO_STYLE[item.stato]?.label}
+                            {STATO_STYLE[item.stato]?.label || 'Da fare'}
                           </button>
                         </td>
                       </tr>
