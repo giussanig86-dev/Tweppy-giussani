@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../../auth/useAuth';
 import { tasksApi } from '../../api/tasks';
-import TaskKanban from './TaskKanban';
+import TaskList from './TaskList';
+import TaskChat from './TaskChat';
 import TaskForm from './TaskForm';
 import Modal from '../../components/ui/Modal';
 import Button from '../../components/ui/Button';
@@ -12,8 +13,10 @@ export default function TasksPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [modalOpen, setModalOpen] = useState(false);
-  const [selected, setSelected] = useState(null);
+  const [editing, setEditing] = useState(null);
+  const [selectedTask, setSelectedTask] = useState(null);
   const [filterAssegnato, setFilterAssegnato] = useState('');
+  const [showCompletati, setShowCompletati] = useState(false);
 
   async function loadTasks() {
     try {
@@ -29,18 +32,14 @@ export default function TasksPage() {
 
   useEffect(() => { loadTasks(); }, []);
 
-  function openNew(stato = 'da_fare') {
-    setSelected({ stato });
-    setModalOpen(true);
-  }
-
-  function openEdit(task) { setSelected(task); setModalOpen(true); }
-  function closeModal() { setModalOpen(false); setSelected(null); }
+  function openNew() { setEditing({}); setModalOpen(true); }
+  function openEdit(task) { setEditing(task); setModalOpen(true); }
+  function closeModal() { setModalOpen(false); setEditing(null); }
 
   async function handleSave(data) {
     const token = await getToken();
-    if (selected?.id) {
-      await tasksApi.update(token, selected.id, data);
+    if (editing?.id) {
+      await tasksApi.update(token, editing.id, data);
     } else {
       await tasksApi.create(token, data);
     }
@@ -51,34 +50,41 @@ export default function TasksPage() {
   async function handleDelete(id) {
     if (!confirm('Eliminare il task?')) return;
     const token = await getToken();
+    if (selectedTask?.id === id) setSelectedTask(null);
     await tasksApi.remove(token, id);
     loadTasks();
   }
 
-  async function handleMove(id, nuovoStato) {
-    const token = await getToken();
-    setTasks((prev) => prev.map((t) => t.id === id ? { ...t, stato: nuovoStato } : t));
-    await tasksApi.update(token, id, { stato: nuovoStato });
-  }
-
   const assegnati = [...new Set(tasks.map((t) => t.assegnato).filter(Boolean))];
-  const filtered = filterAssegnato
-    ? tasks.filter((t) => t.assegnato === filterAssegnato)
-    : tasks;
+
+  let filtered = showCompletati ? tasks : tasks.filter((t) => t.stato !== 'completato');
+  if (filterAssegnato) filtered = filtered.filter((t) => t.assegnato === filterAssegnato);
 
   return (
-    <div>
-      <div className="flex items-center justify-between mb-6">
+    <div className="flex flex-col h-[calc(100vh-5rem)]">
+      <div className="flex items-center justify-between mb-4 shrink-0">
         <h1 className="text-2xl font-bold">Task Management</h1>
-        <Button onClick={() => openNew()}>+ Nuovo Task</Button>
+        <div className="flex items-center gap-3">
+          <label className="flex items-center gap-1.5 text-sm text-gray-500 cursor-pointer select-none">
+            <input
+              type="checkbox"
+              checked={showCompletati}
+              onChange={(e) => setShowCompletati(e.target.checked)}
+              className="rounded"
+            />
+            Mostra completati
+          </label>
+          <Button onClick={openNew}>+ Nuovo Task</Button>
+        </div>
       </div>
 
       {assegnati.length > 0 && (
-        <div className="mb-4 flex gap-2 items-center">
+        <div className="mb-3 flex gap-2 items-center shrink-0">
           <span className="text-sm text-gray-500">Filtra per:</span>
           <button
             onClick={() => setFilterAssegnato('')}
-            className={`px-3 py-1 rounded-full text-xs font-medium transition ${!filterAssegnato ? 'bg-brand-500 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+            className={`text-xs px-2 py-1 rounded-full border transition
+              ${!filterAssegnato ? 'bg-brand-500 text-white border-brand-500' : 'border-gray-300 text-gray-600 hover:border-gray-400'}`}
           >
             Tutti
           </button>
@@ -86,7 +92,8 @@ export default function TasksPage() {
             <button
               key={a}
               onClick={() => setFilterAssegnato(a)}
-              className={`px-3 py-1 rounded-full text-xs font-medium transition ${filterAssegnato === a ? 'bg-brand-500 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+              className={`text-xs px-2 py-1 rounded-full border transition
+                ${filterAssegnato === a ? 'bg-brand-500 text-white border-brand-500' : 'border-gray-300 text-gray-600 hover:border-gray-400'}`}
             >
               {a}
             </button>
@@ -94,26 +101,31 @@ export default function TasksPage() {
         </div>
       )}
 
-      {error && <p className="text-red-500 mb-4 text-sm">{error}</p>}
+      {error && <p className="text-red-500 text-sm mb-2 shrink-0">{error}</p>}
 
       {loading ? (
-        <p className="text-gray-500">Caricamento...</p>
+        <p className="text-sm text-gray-400">Caricamento...</p>
       ) : (
-        <TaskKanban
-          tasks={filtered}
-          onEdit={openEdit}
-          onDelete={handleDelete}
-          onMove={handleMove}
-          onNewInColumn={openNew}
-        />
+        <div className="flex gap-4 flex-1 min-h-0">
+          <div className="flex-1 overflow-y-auto pr-1">
+            <TaskList
+              tasks={filtered}
+              onEdit={openEdit}
+              onDelete={handleDelete}
+              onSelect={setSelectedTask}
+              selectedId={selectedTask?.id}
+            />
+          </div>
+          <div className="w-80 shrink-0">
+            <TaskChat task={selectedTask} />
+          </div>
+        </div>
       )}
 
-      <Modal
-        open={modalOpen}
-        onClose={closeModal}
-        title={selected?.id ? 'Modifica Task' : 'Nuovo Task'}
-      >
-        <TaskForm initial={selected} onSave={handleSave} onCancel={closeModal} />
+      <Modal open={modalOpen} title={editing?.id ? 'Modifica Task' : 'Nuovo Task'} onClose={closeModal}>
+        {editing !== null && (
+          <TaskForm initial={editing} onSave={handleSave} onCancel={closeModal} />
+        )}
       </Modal>
     </div>
   );

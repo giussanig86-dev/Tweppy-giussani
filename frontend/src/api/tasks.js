@@ -8,4 +8,6 @@ export const tasksApi = {
   create: (token, data) => axios.post(BASE, data, { headers: h(token) }).then((r) => r.data),
   update: (token, id, data) => axios.put(`${BASE}/${id}`, data, { headers: h(token) }).then((r) => r.data),
   remove: (token, id) => axios.delete(`${BASE}/${id}`, { headers: h(token) }).then((r) => r.data),
+  listMessaggi: (token, taskId) => axios.get(`${BASE}/${taskId}/messaggi`, { headers: h(token) }).then((r) => r.data),
+  addMessaggio: (token, taskId, data) => axios.post(`${BASE}/${taskId}/messaggi`, data, { headers: h(token) }).then((r) => r.data),
 };

@@ -4,6 +4,7 @@ const { getListItems, createListItem, updateListItem, deleteListItem } = require
 
 const router = express.Router();
 const LIST = 'Task_Log';
+const CHAT_LIST = 'Task_Messaggi';
 
 router.get('/', async (req, res) => {
   try {
@@ -44,6 +45,34 @@ router.delete('/:id', async (req, res) => {
   try {
     await deleteListItem(req.graphToken, LIST, req.params.id);
     res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.get('/:id/messaggi', async (req, res) => {
+  try {
+    const safeId = req.params.id.replace(/'/g, "''");
+    const items = await getListItems(req.graphToken, CHAT_LIST, `fields/taskId eq '${safeId}'`);
+    items.sort((a, b) => new Date(a.createdAt || 0) - new Date(b.createdAt || 0));
+    res.json(items);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.post('/:id/messaggi', async (req, res) => {
+  try {
+    const { testo, autore } = req.body;
+    if (!testo?.trim()) return res.status(400).json({ error: 'Testo obbligatorio' });
+    const fields = {
+      taskId: req.params.id,
+      testo: testo.trim(),
+      autore: autore || 'Utente',
+      createdAt: new Date().toISOString(),
+    };
+    const created = await createListItem(req.graphToken, CHAT_LIST, fields);
+    res.status(201).json(created);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
