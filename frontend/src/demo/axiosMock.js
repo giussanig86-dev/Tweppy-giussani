@@ -103,12 +103,36 @@ if (import.meta.env.VITE_DEMO_MODE === 'true') {
 
     // ── email / comunicazioni ──────────────────────────────────────────────
     if (url.startsWith('/api/email')) {
-      if (url.includes('/scansiona')) return ok({ importate: 0, tasks: 0 });
-      const id = url.split('/')[3];
-      if (url.includes('/storico/') && id) {
-        return ok(m.COMUNICAZIONI.filter(c => c.clienteId === id));
+      if (url.includes('/caselle')) return ok(['me', 'info@studiogds.it']);
+      if (url.includes('/scansiona')) return ok({ elaborati: 0, dettaglio: [] });
+      if (url.includes('/task-da-mail')) {
+        const n = { id: uuid(), titolo: body.titolo, clienteId: body.clienteId, clienteNome: body.clienteNome, assegnato: body.assegnato, priorita: body.priorita, stato: 'da_fare', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() };
+        tasks.push(n);
+        return ok(n, 201);
       }
-      return ok(m.COMUNICAZIONI);
+      if (url.includes('/messaggio/')) return ok({
+        id: 'msg-demo-1',
+        subject: 'Documenti per 730',
+        from: { emailAddress: { address: 'mario.rossi@email.it', name: 'Mario Rossi' } },
+        receivedDateTime: new Date().toISOString(),
+        body: { contentType: 'html', content: '<p>Buongiorno,</p><p>in allegato troverà la CU 2024 e le spese mediche come richiesto.</p><p>Rimango a disposizione per qualsiasi chiarimento.</p><p>Cordiali saluti,<br>Mario Rossi</p>' },
+      });
+      if (url.includes('/rispondi/')) return ok({ success: true });
+      const clienteId = url.split('/storico/')[1]?.split('?')[0];
+      if (clienteId) {
+        const cliente = clienti.find(c => c.id === clienteId);
+        const items = m.COMUNICAZIONI.filter(c => c.clienteId === clienteId);
+        const timeline = [
+          ...items.map(i => i.tipo === 'task'
+            ? { tipo: 'task', data: i.data, titolo: i.titolo, stato: 'da_fare', assegnato: '' }
+            : i.tipo === 'email_in'
+              ? { tipo: 'email_ricevuta', data: i.data, titolo: i.oggetto, preview: 'In allegato i documenti richiesti per la dichiarazione dei redditi.', messageId: 'msg-demo-1', casella: 'me' }
+              : { tipo: 'email_inviata', data: i.data, titolo: i.oggetto, casella: 'me' }
+          ),
+        ].sort((a, b) => new Date(b.data) - new Date(a.data));
+        return ok({ cliente: cliente?.ragioneSociale || '', clienteEmail: cliente?.email || '', timeline });
+      }
+      return ok({ cliente: '', timeline: [] });
     }
 
     // ── workflow ───────────────────────────────────────────────────────────

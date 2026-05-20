@@ -1,134 +1,401 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../../auth/useAuth';
 import { anagraficaApi } from '../../api/anagrafica';
 import { emailApi } from '../../api/email';
+import Modal from '../../components/ui/Modal';
 import Button from '../../components/ui/Button';
 
-const TIPO_CONFIG = {
-  task:           { icon: '✅', label: 'Task', color: 'bg-green-50 border-green-200' },
-  documento:      { icon: '📄', label: 'Documento generato', color: 'bg-blue-50 border-blue-200' },
-  email_inviata:  { icon: '📤', label: 'Email inviata', color: 'bg-purple-50 border-purple-200' },
-  email_ricevuta: { icon: '📧', label: 'Email ricevuta', color: 'bg-yellow-50 border-yellow-200' },
-};
-
-function formatData(d) {
+function fmt(d) {
   if (!d) return '';
   return new Date(d).toLocaleString('it-IT', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' });
+}
+
+function StatioBadge({ stato }) {
+  const cls = stato === 'completato' ? 'bg-green-100 text-green-700'
+    : stato === 'in_lavorazione' ? 'bg-blue-100 text-blue-700'
+    : 'bg-gray-100 text-gray-600';
+  return <span className={`text-xs px-1.5 py-0.5 rounded ${cls}`}>{stato}</span>;
 }
 
 export default function ComunicazioniPage() {
   const { getToken } = useAuth();
   const [clienti, setClienti] = useState([]);
-  const [clienteId, setClienteId] = useState('');
+  const [caselle, setCaselle] = useState(['me']);
+  const [clienteSelezionato, setClienteSelezionato] = useState(null);
   const [timeline, setTimeline] = useState([]);
-  const [clienteNome, setClienteNome] = useState('');
   const [loading, setLoading] = useState(false);
   const [scanning, setScanning] = useState(false);
   const [scanResult, setScanResult] = useState(null);
   const [error, setError] = useState(null);
 
+  // Chat state
+  const [expandedId, setExpandedId] = useState(null);
+  const [corpi, setCorpi] = useState({});        // messageId → body html
+  const [loadingMsg, setLoadingMsg] = useState(null);
+
+  // Reply state
+  const [replyTo, setReplyTo] = useState(null);  // { messageId, subject, casella }
+  const [replyText, setReplyText] = useState('');
+  const [casellaMittente, setCasellaMittente] = useState('me');
+  const [sending, setSending] = useState(false);
+
+  // Task da mail
+  const [taskModal, setTaskModal] = useState(null); // { messageId, casella, titolo }
+  const [taskForm, setTaskForm] = useState({ assegnato: '', priorita: 'media' });
+  const [savingTask, setSavingTask] = useState(false);
+
+  const bottomRef = useRef(null);
+
   useEffect(() => {
-    getToken().then(t => anagraficaApi.list(t).then(setClienti).catch(() => {}));
+    getToken().then(async t => {
+      const [cl, ca] = await Promise.all([
+        anagraficaApi.list(t).catch(() => []),
+        emailApi.caselle(t).catch(() => ['me']),
+      ]);
+      setClienti(cl.filter(c => c.stato !== 'eliminato'));
+      setCaselle(ca);
+      setCasellaMittente(ca[0] || 'me');
+    });
   }, []);
 
-  async function loadStorico(cId) {
-    if (!cId) return;
-    setLoading(true); setError(null); setTimeline([]);
+  async function loadStorico(cliente) {
+    if (!cliente) return;
+    setLoading(true); setError(null); setTimeline([]); setExpandedId(null); setReplyTo(null);
     try {
       const token = await getToken();
-      const data = await emailApi.storico(token, cId);
+      const data = await emailApi.storico(token, cliente.id);
       setTimeline(data.timeline || []);
-      setClienteNome(data.cliente || '');
     } catch (e) { setError(e.message); } finally { setLoading(false); }
   }
 
-  function handleClienteChange(e) {
-    setClienteId(e.target.value);
-    loadStorico(e.target.value);
-  }
-
   async function handleScansiona() {
-    setScanning(true); setScanResult(null); setError(null);
+    setScanning(true); setScanResult(null);
     try {
       const token = await getToken();
       const res = await emailApi.scansiona(token, 24);
       setScanResult(res);
-      if (clienteId) loadStorico(clienteId);
+      if (clienteSelezionato) loadStorico(clienteSelezionato);
     } catch (e) { setError(e.message); } finally { setScanning(false); }
   }
 
+  async function toggleExpand(item) {
+    if (!item.messageId) return;
+    if (expandedId === item.messageId) { setExpandedId(null); return; }
+    setExpandedId(item.messageId);
+    if (!corpi[item.messageId]) {
+      setLoadingMsg(item.messageId);
+      try {
+        const token = await getToken();
+        const msg = await emailApi.getMessage(token, item.messageId, item.casella);
+        setCorpi(prev => ({ ...prev, [item.messageId]: msg.body?.content || msg.body || '' }));
+      } catch {} finally { setLoadingMsg(null); }
+    }
+  }
+
+  async function handleRispondi() {
+    if (!replyTo || !replyText.trim()) return;
+    setSending(true);
+    try {
+      const token = await getToken();
+      await emailApi.rispondi(token, replyTo.messageId, replyText, casellaMittente);
+      // aggiunge bolla ottimistica
+      setTimeline(prev => [{
+        tipo: 'email_inviata',
+        data: new Date().toISOString(),
+        titolo: `Re: ${replyTo.subject}`,
+        email: clienteSelezionato?.email || '',
+        casella: casellaMittente,
+      }, ...prev]);
+      setReplyTo(null); setReplyText('');
+    } catch (e) { setError(e.message); } finally { setSending(false); }
+  }
+
+  async function handleSalvaTask() {
+    if (!taskModal) return;
+    setSavingTask(true);
+    try {
+      const token = await getToken();
+      await emailApi.taskDaMail(token, {
+        messageId: taskModal.messageId,
+        mailbox: taskModal.casella,
+        clienteId: clienteSelezionato.id,
+        clienteNome: clienteSelezionato.ragioneSociale,
+        titolo: taskModal.titolo,
+        assegnato: taskForm.assegnato,
+        priorita: taskForm.priorita,
+      });
+      setTaskModal(null);
+    } catch (e) { setError(e.message); } finally { setSavingTask(false); }
+  }
+
+  const cercaCliente = (v) => clienti.filter(c =>
+    c.ragioneSociale.toLowerCase().includes(v.toLowerCase())
+  );
+
   return (
-    <div>
-      <div className="flex items-start justify-between mb-6">
-        <h1 className="text-2xl font-bold">Storico Comunicazioni</h1>
-        <div className="flex items-center gap-3">
-          {scanResult && (
-            <span className="text-sm text-green-600 font-medium">
-              {scanResult.elaborati} email elaborate
-            </span>
-          )}
-          <Button variant="secondary" onClick={handleScansiona} disabled={scanning}>
-            {scanning ? 'Scansione...' : '🔄 Scansiona Inbox (ultime 24h)'}
+    <div className="flex h-[calc(100vh-64px)] overflow-hidden gap-0">
+
+      {/* ── Pannello sinistro: lista clienti ─────────────────────────────── */}
+      <div className="w-64 shrink-0 border-r bg-gray-50 flex flex-col">
+        <div className="p-3 border-b">
+          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Comunicazioni</p>
+          <input
+            type="text"
+            placeholder="Cerca cliente..."
+            className="w-full border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+            onChange={e => {
+              const v = e.target.value;
+              if (!v) return;
+            }}
+          />
+        </div>
+
+        <div className="flex-1 overflow-y-auto">
+          {clienti.map(c => (
+            <button
+              key={c.id}
+              onClick={() => { setClienteSelezionato(c); loadStorico(c); }}
+              className={`w-full text-left px-4 py-3 text-sm border-b transition ${
+                clienteSelezionato?.id === c.id
+                  ? 'bg-brand-50 text-brand-800 font-medium border-l-2 border-l-brand-500'
+                  : 'text-gray-700 hover:bg-white'
+              }`}
+            >
+              <div className="font-medium truncate">{c.ragioneSociale}</div>
+              {c.email && <div className="text-xs text-gray-400 truncate">{c.email}</div>}
+            </button>
+          ))}
+        </div>
+
+        <div className="p-3 border-t">
+          <Button size="sm" variant="secondary" className="w-full" onClick={handleScansiona} disabled={scanning}>
+            {scanning ? 'Scansione...' : '🔄 Scansiona inbox'}
           </Button>
+          {scanResult && (
+            <p className="text-xs text-green-600 text-center mt-1">{scanResult.elaborati} email elaborate</p>
+          )}
         </div>
       </div>
 
-      <div className="mb-6 max-w-xs">
-        <label className="block text-xs font-medium text-gray-600 mb-1">Cliente</label>
-        <select value={clienteId} onChange={handleClienteChange}
-          className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-brand-500">
-          <option value="">— seleziona cliente —</option>
-          {clienti.map(c => <option key={c.id} value={c.id}>{c.ragioneSociale}</option>)}
-        </select>
-      </div>
+      {/* ── Pannello destro: chat ─────────────────────────────────────────── */}
+      <div className="flex-1 flex flex-col min-w-0">
 
-      {error && <p className="text-red-500 text-sm mb-4">{error}</p>}
+        {/* Header */}
+        <div className="px-5 py-3 border-b bg-white flex items-center justify-between shrink-0">
+          {clienteSelezionato ? (
+            <div>
+              <p className="font-semibold text-gray-800">{clienteSelezionato.ragioneSociale}</p>
+              {clienteSelezionato.email && <p className="text-xs text-gray-400">{clienteSelezionato.email}</p>}
+            </div>
+          ) : (
+            <p className="text-gray-400">Seleziona un cliente dalla lista</p>
+          )}
+          {caselle.length > 1 && (
+            <div className="flex items-center gap-2 text-xs text-gray-500">
+              <span>Casella monitorata:</span>
+              {caselle.map(c => (
+                <span key={c} className="bg-gray-100 px-2 py-0.5 rounded">{c === 'me' ? '(principale)' : c}</span>
+              ))}
+            </div>
+          )}
+        </div>
 
-      {loading && <p className="text-gray-500">Caricamento storico...</p>}
+        {/* Messaggi */}
+        <div className="flex-1 overflow-y-auto px-5 py-4 space-y-3">
+          {!clienteSelezionato && (
+            <p className="text-center text-gray-300 text-lg mt-20">
+              Seleziona un cliente per vedere la conversazione
+            </p>
+          )}
 
-      {!loading && clienteId && timeline.length === 0 && (
-        <p className="text-gray-400 text-center py-12">Nessuna comunicazione registrata per questo cliente.</p>
-      )}
+          {loading && <p className="text-center text-gray-500 mt-10">Caricamento...</p>}
+          {error && <p className="text-center text-red-500 mt-4">{error}</p>}
 
-      {!loading && !clienteId && (
-        <p className="text-gray-300 text-center py-16 text-lg">Seleziona un cliente per visualizzare lo storico.</p>
-      )}
+          {!loading && clienteSelezionato && timeline.length === 0 && (
+            <p className="text-center text-gray-400 mt-20">Nessuna comunicazione registrata.</p>
+          )}
 
-      {timeline.length > 0 && (
-        <div>
-          <p className="text-sm text-gray-500 mb-4">{timeline.length} eventi per <strong>{clienteNome}</strong></p>
-          <div className="relative">
-            <div className="absolute left-5 top-0 bottom-0 w-0.5 bg-gray-200" />
-            <div className="space-y-3">
-              {timeline.map((item, i) => {
-                const cfg = TIPO_CONFIG[item.tipo] || { icon: '•', label: item.tipo, color: 'bg-gray-50 border-gray-200' };
-                return (
-                  <div key={i} className="flex gap-4 items-start pl-12 relative">
-                    <div className="absolute left-3 w-5 h-5 rounded-full bg-white border-2 border-gray-300 flex items-center justify-center text-xs">
-                      {cfg.icon}
-                    </div>
-                    <div className={`flex-1 border rounded-lg p-3 ${cfg.color}`}>
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">{cfg.label}</span>
-                        <span className="text-xs text-gray-400">{formatData(item.data)}</span>
-                      </div>
-                      <p className="text-sm font-medium text-gray-800 mt-1">{item.titolo}</p>
-                      {item.stato && (
-                        <span className={`text-xs px-1.5 py-0.5 rounded mt-1 inline-block
-                          ${item.stato === 'completato' ? 'bg-green-100 text-green-700' : item.stato === 'in_lavorazione' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-600'}`}>
-                          {item.stato}
-                        </span>
-                      )}
-                      {item.preview && <p className="text-xs text-gray-500 mt-1 line-clamp-2">{item.preview}</p>}
-                      {item.assegnato && <p className="text-xs text-gray-400 mt-0.5">→ {item.assegnato}</p>}
-                    </div>
+          {/* Timeline in ordine cronologico ascendente per la chat */}
+          {[...timeline].reverse().map((item, i) => {
+            if (item.tipo === 'task' || item.tipo === 'documento') {
+              return (
+                <div key={i} className="flex justify-center">
+                  <div className="text-xs text-gray-400 bg-gray-100 px-3 py-1 rounded-full flex items-center gap-1.5">
+                    <span>{item.tipo === 'task' ? '✅' : '📄'}</span>
+                    <span>{item.titolo}</span>
+                    {item.stato && <StatioBadge stato={item.stato} />}
+                    <span className="ml-1 opacity-60">{fmt(item.data)}</span>
                   </div>
-                );
-              })}
+                </div>
+              );
+            }
+
+            const isRicevuta = item.tipo === 'email_ricevuta';
+            const isExpanded = expandedId === item.messageId;
+
+            return (
+              <div key={i} className={`flex ${isRicevuta ? 'justify-start' : 'justify-end'}`}>
+                <div className={`max-w-[75%] ${isRicevuta ? '' : 'items-end flex flex-col'}`}>
+                  {/* Casella badge */}
+                  {item.casella && item.casella !== 'me' && (
+                    <span className="text-xs text-gray-400 mb-0.5 px-1">📬 {item.casella}</span>
+                  )}
+
+                  <div
+                    onClick={() => isRicevuta && toggleExpand(item)}
+                    className={`rounded-2xl px-4 py-2.5 shadow-sm text-sm ${
+                      isRicevuta
+                        ? 'bg-white border border-gray-200 rounded-tl-sm cursor-pointer hover:shadow-md transition-shadow'
+                        : 'bg-brand-600 text-white rounded-tr-sm'
+                    }`}
+                  >
+                    <p className={`font-medium text-sm ${isRicevuta ? 'text-gray-800' : 'text-white'}`}>
+                      {item.titolo}
+                    </p>
+
+                    {/* Preview */}
+                    {isRicevuta && item.preview && !isExpanded && (
+                      <p className="text-xs text-gray-500 mt-0.5 line-clamp-2">{item.preview}</p>
+                    )}
+
+                    {/* Corpo espanso */}
+                    {isRicevuta && isExpanded && (
+                      <div className="mt-2 border-t pt-2">
+                        {loadingMsg === item.messageId ? (
+                          <p className="text-xs text-gray-400">Caricamento...</p>
+                        ) : (
+                          <div
+                            className="text-xs text-gray-700 max-h-48 overflow-y-auto prose prose-sm"
+                            dangerouslySetInnerHTML={{ __html: corpi[item.messageId] || item.preview }}
+                          />
+                        )}
+                        <div className="flex gap-2 mt-2 pt-2 border-t">
+                          <button
+                            onClick={(e) => { e.stopPropagation(); setReplyTo({ messageId: item.messageId, subject: item.titolo, casella: item.casella }); setReplyText(''); }}
+                            className="text-xs bg-brand-50 text-brand-700 hover:bg-brand-100 px-2 py-1 rounded font-medium transition"
+                          >
+                            ↩ Rispondi
+                          </button>
+                          <button
+                            onClick={(e) => { e.stopPropagation(); setTaskModal({ messageId: item.messageId, casella: item.casella, titolo: item.titolo }); setTaskForm({ assegnato: '', priorita: 'media' }); }}
+                            className="text-xs bg-green-50 text-green-700 hover:bg-green-100 px-2 py-1 rounded font-medium transition"
+                          >
+                            ✅ Crea Task
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
+                    {isRicevuta && (
+                      <p className="text-xs text-gray-400 mt-1">{fmt(item.data)}</p>
+                    )}
+                  </div>
+
+                  {!isRicevuta && (
+                    <p className="text-xs text-gray-400 mt-0.5 text-right">{fmt(item.data)}</p>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+          <div ref={bottomRef} />
+        </div>
+
+        {/* Reply box */}
+        {clienteSelezionato && (
+          <div className="border-t bg-white px-4 py-3 shrink-0">
+            {replyTo && (
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-xs text-gray-500">
+                  ↩ <span className="font-medium">In risposta a:</span> {replyTo.subject}
+                </p>
+                <button onClick={() => setReplyTo(null)} className="text-gray-400 hover:text-gray-600 text-xs">✕</button>
+              </div>
+            )}
+            <div className="flex gap-3 items-end">
+              <div className="flex-1">
+                <textarea
+                  rows={replyTo ? 3 : 2}
+                  value={replyText}
+                  onChange={e => setReplyText(e.target.value)}
+                  placeholder={replyTo ? 'Scrivi la tua risposta...' : 'Seleziona una email ricevuta e clicca "Rispondi"'}
+                  disabled={!replyTo}
+                  className="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-brand-500 disabled:bg-gray-50 disabled:text-gray-400"
+                />
+              </div>
+              <div className="flex flex-col gap-2 items-end shrink-0">
+                {caselle.length > 1 && replyTo && (
+                  <select
+                    value={casellaMittente}
+                    onChange={e => setCasellaMittente(e.target.value)}
+                    className="border border-gray-300 rounded-lg px-2 py-1.5 text-xs bg-white"
+                  >
+                    {caselle.map(c => <option key={c} value={c}>{c === 'me' ? 'Casella principale' : c}</option>)}
+                  </select>
+                )}
+                <Button
+                  onClick={handleRispondi}
+                  disabled={!replyTo || !replyText.trim() || sending}
+                  size="sm"
+                >
+                  {sending ? 'Invio...' : 'Invia'}
+                </Button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
+
+      {/* Modal Crea Task */}
+      <Modal open={!!taskModal} onClose={() => setTaskModal(null)} title="Crea Task da Email">
+        {taskModal && (
+          <div className="space-y-4">
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Titolo task</label>
+              <input
+                type="text"
+                value={taskModal.titolo}
+                onChange={e => setTaskModal(p => ({ ...p, titolo: e.target.value }))}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Cliente</label>
+              <p className="text-sm font-medium text-gray-800 px-3 py-2 bg-gray-50 rounded-lg">{clienteSelezionato?.ragioneSociale}</p>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Assegnato a</label>
+                <input
+                  type="text"
+                  value={taskForm.assegnato}
+                  onChange={e => setTaskForm(p => ({ ...p, assegnato: e.target.value }))}
+                  placeholder="es. Laura"
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Priorità</label>
+                <select
+                  value={taskForm.priorita}
+                  onChange={e => setTaskForm(p => ({ ...p, priorita: e.target.value }))}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-brand-500"
+                >
+                  <option value="alta">Alta</option>
+                  <option value="media">Media</option>
+                  <option value="bassa">Bassa</option>
+                </select>
+              </div>
+            </div>
+            <div className="flex justify-end gap-3">
+              <Button variant="secondary" onClick={() => setTaskModal(null)}>Annulla</Button>
+              <Button onClick={handleSalvaTask} disabled={savingTask}>
+                {savingTask ? 'Salvataggio...' : 'Crea Task'}
+              </Button>
+            </div>
+          </div>
+        )}
+      </Modal>
     </div>
   );
 }
