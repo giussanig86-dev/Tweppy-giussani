@@ -3,7 +3,7 @@ const path = require('path');
 const multer = require('multer');
 const { v4: uuidv4 } = require('uuid');
 const {
-  getInboxMessages, getMessageWithAttachments, getClientMessages,
+  getInboxMessages, getMessageWithAttachments, getClientMessages, getSentToClient,
   getMessage, replyToMessage, streamAttachment,
   createReplyDraft, addAttachmentToDraft, sendDraft,
 } = require('../graph/messages');
@@ -241,6 +241,10 @@ router.get('/sconosciuti', async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
+function normalizeSubject(s) {
+  return (s || '').replace(/^(re:\s*)+/i, '').toLowerCase().trim();
+}
+
 // Storico comunicazioni unificato per cliente
 router.get('/storico/:clienteId', async (req, res) => {
   try {
@@ -256,19 +260,52 @@ router.get('/storico/:clienteId', async (req, res) => {
 
     const caselle = (process.env.MAILBOXES || 'me').split(',').map(s => s.trim()).filter(Boolean);
     let emailRicevute = [];
+    let emailInviateOutlook = [];
+
     if (cliente.email) {
-      const results = await Promise.allSettled(
-        caselle.map(casella => getClientMessages(req.graphToken, cliente.email, 20, casella)
-          .then(msgs => msgs.map(m => ({ ...m, _casella: casella })))
-        )
-      );
-      emailRicevute = results.flatMap(r => r.status === 'fulfilled' ? r.value : []);
+      const [ricevuteRaw, inviatRaw] = await Promise.all([
+        Promise.allSettled(
+          caselle.map((casella, i) =>
+            getClientMessages(req.graphToken, cliente.email, 20, casella)
+              .then(msgs => msgs.map(m => ({ ...m, _casella: casella })))
+          )
+        ),
+        Promise.allSettled(
+          caselle.map((casella, i) =>
+            getSentToClient(req.graphToken, cliente.email, 20, casella)
+              .then(msgs => msgs.map(m => ({ ...m, _casella: casella })))
+          )
+        ),
+      ]);
+
+      emailRicevute = ricevuteRaw.flatMap(r => r.status === 'fulfilled' ? r.value : []);
+
+      const sentItems = inviatRaw.flatMap(r => r.status === 'fulfilled' ? r.value : []);
+      emailInviateOutlook = sentItems
+        .filter(e => {
+          const normSent = normalizeSubject(e.subject);
+          const sentTime = new Date(e.sentDateTime).getTime();
+          return !invii.some(i => {
+            const normInvio = normalizeSubject(i.oggetto);
+            const invioTime = new Date(i.inviatoAt).getTime();
+            return normSent === normInvio && Math.abs(sentTime - invioTime) < 60000;
+          });
+        })
+        .map(e => ({
+          tipo: 'email_inviata',
+          data: e.sentDateTime,
+          titolo: e.subject,
+          email: cliente.email,
+          casella: e._casella,
+          fonte: 'outlook',
+        }));
     }
 
     const timeline = [
       ...tasks.map((t) => ({ tipo: 'task', data: t.createdAt, titolo: t.titolo, stato: t.stato, assegnato: t.assegnato })),
       ...documenti.map((d) => ({ tipo: 'documento', data: d.generatoAt, titolo: d.templateNome })),
       ...invii.map((i) => ({ tipo: 'email_inviata', data: i.inviatoAt, titolo: i.oggetto, email: i.email, casella: i.casella })),
+      ...emailInviateOutlook,
       ...emailRicevute.map((e) => ({
         tipo: 'email_ricevuta',
         data: e.receivedDateTime,
@@ -280,6 +317,30 @@ router.get('/storico/:clienteId', async (req, res) => {
     ].sort((a, b) => new Date(b.data) - new Date(a.data));
 
     res.json({ cliente: cliente.ragioneSociale, clienteEmail: cliente.email, timeline });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// Note interne su una email specifica
+router.get('/note/:messageId', async (req, res) => {
+  try {
+    const safeId = req.params.messageId.replace(/'/g, "''");
+    const items = await getListItems(req.graphToken, 'Email_Note', `fields/messageId eq '${safeId}'`);
+    items.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+    res.json(items);
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+router.post('/note/:messageId', async (req, res) => {
+  try {
+    const { testo, autore } = req.body;
+    if (!testo?.trim()) return res.status(400).json({ error: 'Testo obbligatorio' });
+    const created = await createListItem(req.graphToken, 'Email_Note', {
+      messageId: req.params.messageId,
+      testo: testo.trim(),
+      autore: autore || 'Utente',
+      createdAt: new Date().toISOString(),
+    });
+    res.status(201).json(created);
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 

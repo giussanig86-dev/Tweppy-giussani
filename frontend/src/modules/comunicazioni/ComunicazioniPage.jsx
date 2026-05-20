@@ -4,6 +4,7 @@ import { anagraficaApi } from '../../api/anagrafica';
 import { emailApi } from '../../api/email';
 import Modal from '../../components/ui/Modal';
 import Button from '../../components/ui/Button';
+import EmailNote from './EmailNote';
 
 function fmt(d) {
   if (!d) return '';
@@ -451,6 +452,7 @@ export default function ComunicazioniPage() {
                           messageId={item.messageId}
                           casella={item.casella}
                         />
+                        <EmailNote messageId={item.messageId} />
                         <div className="flex gap-2 mt-2 pt-2 border-t">
                           <button
                             onClick={(e) => { e.stopPropagation(); setReplyTo({ messageId: item.messageId, subject: item.titolo, casella: item.casella }); setReplyText(''); setReplyFiles([]); }}

@@ -231,6 +231,17 @@ Per ogni lista: accedere al sito SharePoint → **Contenuto del sito** → **Nuo
 
 ---
 
+### Lista: `Email_Note`
+
+| Nome campo | Tipo SharePoint | Note |
+|---|---|---|
+| `messageId` | Riga di testo | ID Graph dell'email a cui è agganciata la nota |
+| `testo` | Più righe di testo | Corpo della nota interna |
+| `autore` | Riga di testo | Nome utente Azure AD |
+| `createdAt` | Riga di testo | ISO datetime string |
+
+---
+
 ### Lista: `Workflow_Templates`
 
 | Nome campo | Tipo SharePoint | Note |
@@ -320,6 +331,7 @@ VITE_DEMO_MODE=false
 - [ ] Lista `Invii_Log` creata con tutti i campi
 - [ ] Lista `Email_Sconosciute_Log` creata con tutti i campi
 - [ ] Lista `Attivita_Log` creata con tutti i campi
+- [ ] Lista `Email_Note` creata con tutti i campi
 - [ ] Lista `Workflow_Templates` creata con tutti i campi
 - [ ] Variabili d'ambiente backend configurate
 - [ ] Variabili d'ambiente frontend configurate

@@ -34,4 +34,8 @@ export const emailApi = {
   },
   taskDaMail: (token, data) =>
     axios.post(`${BASE}/task-da-mail`, data, { headers: h(token) }).then(r => r.data),
+  listNote: (token, messageId) =>
+    axios.get(`${BASE}/note/${messageId}`, { headers: h(token) }).then(r => r.data),
+  addNota: (token, messageId, data) =>
+    axios.post(`${BASE}/note/${messageId}`, data, { headers: h(token) }).then(r => r.data),
 };

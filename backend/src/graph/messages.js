@@ -71,10 +71,24 @@ async function sendDraft(accessToken, draftId, mailbox = 'me') {
   await client.api(`${base}/messages/${draftId}/send`).post({});
 }
 
+async function getSentToClient(accessToken, clientEmail, top = 20, mailbox = 'me') {
+  const client = createGraphClient(accessToken);
+  const base = mailboxPath(mailbox);
+  const filter = encodeURIComponent(
+    `toRecipients/any(r: r/emailAddress/address eq '${clientEmail}')`
+  );
+  const select = 'id,subject,toRecipients,sentDateTime,bodyPreview';
+  const res = await client
+    .api(`${base}/mailFolders/sentItems/messages?$filter=${filter}&$select=${select}&$top=${top}`)
+    .get();
+  return res.value;
+}
+
 module.exports = {
   getInboxMessages,
   getMessageWithAttachments,
   getClientMessages,
+  getSentToClient,
   getMessage,
   replyToMessage,
   streamAttachment,
