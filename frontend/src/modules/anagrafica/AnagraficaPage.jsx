@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import { useAuth } from '../../auth/useAuth';
 import { anagraficaApi } from '../../api/anagrafica';
 import ClienteTable from './ClienteTable';
@@ -8,6 +9,7 @@ import Modal from '../../components/ui/Modal';
 
 export default function AnagraficaPage() {
   const { getToken } = useAuth();
+  const location = useLocation();
   const [clienti, setClienti] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -29,6 +31,7 @@ export default function AnagraficaPage() {
   }
 
   useEffect(() => { loadClienti(); }, []);
+  useEffect(() => { if (location.state?.openNew) openNew(); }, []);
 
   function openNew() { setSelected(null); setModalOpen(true); }
   function openEdit(cliente) { setSelected(cliente); setModalOpen(true); }

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import { useAuth } from '../../auth/useAuth';
 import { calendarioApi } from '../../api/calendario';
 import EventoForm from './EventoForm';
@@ -42,6 +43,7 @@ function formatTime(dt) {
 
 export default function CalendarioPage() {
   const { getToken } = useAuth();
+  const location = useLocation();
   const now = new Date();
   const [year, setYear] = useState(now.getFullYear());
   const [month, setMonth] = useState(now.getMonth());
@@ -64,6 +66,9 @@ export default function CalendarioPage() {
   }
 
   useEffect(() => { loadEventi(year, month); }, [year, month]);
+  useEffect(() => {
+    if (location.state?.openNew) openNew(isoDate(now.getFullYear(), now.getMonth(), now.getDate()));
+  }, []);
 
   function prevMonth() {
     if (month === 0) { setYear(y => y - 1); setMonth(11); }

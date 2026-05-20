@@ -1,7 +1,7 @@
 import { NavLink } from 'react-router-dom';
 
 const navItems = [
-  { to: '/anagrafica', label: 'Anagrafica Clienti' },
+  { to: '/anagrafica', label: 'Anagrafica' },
   { to: '/tasks', label: 'Task' },
   { to: '/checklist', label: 'Scadenze Fiscali' },
   { to: '/documenti', label: 'Documenti' },
