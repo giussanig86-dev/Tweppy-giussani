@@ -33,23 +33,34 @@ function formatBytes(n) {
 }
 
 function AllegatiPreview({ allegati }) {
-  const [lightbox, setLightbox] = useState(null);
-
-  function download(att) {
-    const bytes = att.downloadBytes || att.contentBytes;
-    if (!bytes) return;
-    const blob = b64toBlob(bytes, att.contentType);
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url; a.download = att.name; a.click();
-    URL.revokeObjectURL(url);
-  }
+  const [viewer, setViewer] = useState(null); // { att, blobUrl }
 
   function b64toBlob(b64, type) {
     const bin = atob(b64);
     const arr = new Uint8Array(bin.length);
     for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
     return new Blob([arr], { type });
+  }
+
+  function openViewer(att) {
+    if (!att.contentBytes) return;
+    const blob = b64toBlob(att.contentBytes, att.contentType);
+    const blobUrl = URL.createObjectURL(blob);
+    setViewer({ att, blobUrl });
+  }
+
+  function closeViewer() {
+    if (viewer?.blobUrl) URL.revokeObjectURL(viewer.blobUrl);
+    setViewer(null);
+  }
+
+  function download(att) {
+    if (!att.contentBytes) return;
+    const blob = b64toBlob(att.contentBytes, att.contentType);
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = att.name; a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
 
   if (!allegati?.length) return null;
@@ -59,18 +70,23 @@ function AllegatiPreview({ allegati }) {
       <div className="mt-2 pt-2 border-t flex flex-wrap gap-2">
         {allegati.map((att, i) => {
           const isImg = att.contentType?.startsWith('image/');
+          const isPdf = att.contentType === 'application/pdf';
+          const canPreview = att.contentBytes && (isImg || isPdf);
           const cfg = FILE_ICONS[att.contentType] || { icon: '📎', color: 'text-gray-500', bg: 'bg-gray-50' };
 
           if (isImg && att.contentBytes) {
             return (
-              <button key={i} onClick={() => setLightbox(att)}
-                className="relative rounded-lg overflow-hidden border border-gray-200 hover:shadow-md transition-shadow">
+              <button key={i} onClick={() => openViewer(att)}
+                className="relative rounded-lg overflow-hidden border border-gray-200 hover:shadow-md transition-shadow group">
                 <img
                   src={`data:${att.contentType};base64,${att.contentBytes}`}
                   alt={att.name}
                   className="w-24 h-20 object-cover"
                 />
-                <div className="absolute bottom-0 left-0 right-0 bg-black/40 text-white text-[10px] px-1 py-0.5 truncate">
+                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center">
+                  <span className="text-white text-xs opacity-0 group-hover:opacity-100 font-medium">🔍 Apri</span>
+                </div>
+                <div className="absolute bottom-0 left-0 right-0 bg-black/50 text-white text-[10px] px-1 py-0.5 truncate">
                   {att.name}
                 </div>
               </button>
@@ -78,44 +94,55 @@ function AllegatiPreview({ allegati }) {
           }
 
           return (
-            <button key={i} onClick={() => download(att)}
+            <button key={i} onClick={() => canPreview ? openViewer(att) : download(att)}
               className={`flex items-center gap-2 px-3 py-2 rounded-lg border border-gray-200 ${cfg.bg} hover:shadow-sm transition-shadow text-left`}>
-              <span className="text-lg">{cfg.icon}</span>
+              <span className="text-xl">{cfg.icon}</span>
               <div>
-                <p className={`text-xs font-medium ${cfg.color} truncate max-w-[120px]`}>{att.name}</p>
-                <p className="text-[10px] text-gray-400">{formatBytes(att.size)}</p>
+                <p className={`text-xs font-medium ${cfg.color} truncate max-w-[130px]`}>{att.name}</p>
+                <p className="text-[10px] text-gray-400">
+                  {formatBytes(att.size)} · {canPreview ? 'clicca per visualizzare' : 'non disponibile'}
+                </p>
               </div>
             </button>
           );
         })}
       </div>
 
-      {/* Lightbox immagine */}
-      {lightbox && (
-        <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4"
-          onClick={() => setLightbox(null)}>
-          <div className="relative max-w-3xl max-h-full" onClick={e => e.stopPropagation()}>
-            <img
-              src={`data:${lightbox.contentType};base64,${lightbox.contentBytes}`}
-              alt={lightbox.name}
-              className="max-w-full max-h-[80vh] rounded-lg shadow-2xl object-contain"
-            />
-            <div className="flex items-center justify-between mt-2">
-              <p className="text-white text-sm">{lightbox.name}</p>
-              <div className="flex gap-2">
-                <button onClick={() => {
-                  const a = document.createElement('a');
-                  a.href = `data:${lightbox.contentType};base64,${lightbox.contentBytes}`;
-                  a.download = lightbox.name; a.click();
-                }} className="text-white text-xs bg-white/20 hover:bg-white/30 px-3 py-1 rounded-lg transition">
-                  ⬇ Scarica
-                </button>
-                <button onClick={() => setLightbox(null)}
-                  className="text-white text-xs bg-white/20 hover:bg-white/30 px-3 py-1 rounded-lg transition">
-                  ✕ Chiudi
-                </button>
-              </div>
+      {/* Viewer lightbox */}
+      {viewer && (
+        <div className="fixed inset-0 bg-black/85 z-50 flex flex-col" onClick={closeViewer}>
+          {/* Toolbar */}
+          <div className="flex items-center justify-between px-5 py-3 shrink-0" onClick={e => e.stopPropagation()}>
+            <p className="text-white font-medium text-sm truncate">{viewer.att.name}</p>
+            <div className="flex gap-2">
+              <button onClick={() => download(viewer.att)}
+                className="text-white text-xs bg-white/20 hover:bg-white/30 px-3 py-1.5 rounded-lg transition font-medium">
+                ⬇ Scarica
+              </button>
+              <button onClick={closeViewer}
+                className="text-white text-xs bg-white/20 hover:bg-white/30 px-3 py-1.5 rounded-lg transition font-medium">
+                ✕ Chiudi
+              </button>
             </div>
+          </div>
+
+          {/* Contenuto */}
+          <div className="flex-1 overflow-hidden p-4" onClick={e => e.stopPropagation()}>
+            {viewer.att.contentType?.startsWith('image/') ? (
+              <img
+                src={viewer.blobUrl}
+                alt={viewer.att.name}
+                className="max-w-full max-h-full mx-auto object-contain rounded-lg shadow-2xl block"
+                style={{ maxHeight: 'calc(100vh - 100px)' }}
+              />
+            ) : (
+              <iframe
+                src={viewer.blobUrl}
+                title={viewer.att.name}
+                className="w-full rounded-lg bg-white shadow-2xl"
+                style={{ height: 'calc(100vh - 100px)' }}
+              />
+            )}
           </div>
         </div>
       )}

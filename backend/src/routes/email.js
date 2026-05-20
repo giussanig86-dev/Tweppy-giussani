@@ -44,19 +44,13 @@ router.get('/allegati/:messageId', async (req, res) => {
     const fullMsg = await getMessageWithAttachments(req.graphToken, req.params.messageId, mailbox);
     const allegati = (fullMsg.attachments || [])
       .filter(a => a['@odata.type'] === '#microsoft.graph.fileAttachment')
-      .map(a => {
-        const isImage = a.contentType?.startsWith('image/');
-        const sizeOk = (a.size || 0) < 1024 * 1024; // < 1MB
-        return {
-          name: a.name,
-          contentType: a.contentType,
-          size: a.size,
-          // Inline solo per immagini piccole
-          contentBytes: (isImage && sizeOk) ? a.contentBytes : null,
-          // Per tutti gli altri: base64 per download client-side
-          downloadBytes: (!isImage && sizeOk) ? a.contentBytes : null,
-        };
-      });
+      .map(a => ({
+        name: a.name,
+        contentType: a.contentType,
+        size: a.size,
+        // Includi bytes per file < 5MB — il frontend decide come usarli (preview vs download)
+        contentBytes: (a.size || 0) < 5 * 1024 * 1024 ? a.contentBytes : null,
+      }));
     res.json(allegati);
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
