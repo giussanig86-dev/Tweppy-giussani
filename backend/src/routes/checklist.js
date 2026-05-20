@@ -17,6 +17,20 @@ router.get('/anno/:anno', async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
+// Matrice riepilogo: tutti gli adempimenti per-cliente di un anno, filtro mese opzionale
+router.get('/matrice/:anno', async (req, res) => {
+  try {
+    const anno = parseInt(req.params.anno);
+    const mese = req.query.mese ? String(req.query.mese).padStart(2, '0') : null;
+    const filter = `fields/anno eq ${anno} and fields/clienteId ne ''`;
+    let items = await getListItems(req.graphToken, LIST, filter);
+    if (mese) {
+      items = items.filter(i => i.scadenza?.startsWith(`${anno}-${mese}`));
+    }
+    res.json(items);
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
 // Adempimenti per singolo cliente + anno
 router.get('/:clienteId/:anno', async (req, res) => {
   try {

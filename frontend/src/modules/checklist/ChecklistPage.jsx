@@ -3,6 +3,7 @@ import { useAuth } from '../../auth/useAuth';
 import { anagraficaApi } from '../../api/anagrafica';
 import { checklistApi } from '../../api/checklist';
 import ChecklistTable from './ChecklistTable';
+import VistaMatrice from './VistaMatrice';
 import Modal from '../../components/ui/Modal';
 import Button from '../../components/ui/Button';
 
@@ -303,6 +304,7 @@ export default function ChecklistPage() {
           {[
             { key: 'anno', label: '📅 Scadenzario Studio' },
             { key: 'cliente', label: '👤 Per Cliente' },
+            { key: 'matrice', label: '📊 Riepilogo' },
           ].map(t => (
             <button
               key={t.key}
@@ -317,7 +319,9 @@ export default function ChecklistPage() {
         </div>
       </div>
 
-      {tab === 'anno' ? <VistaAnno /> : <VistaCliente />}
+      {tab === 'anno' && <VistaAnno />}
+      {tab === 'cliente' && <VistaCliente />}
+      {tab === 'matrice' && <VistaMatrice />}
     </div>
   );
 }

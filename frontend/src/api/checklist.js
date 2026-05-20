@@ -21,4 +21,11 @@ export const checklistApi = {
   // Aggiorna stato (condiviso)
   updateStato: (token, id, stato, note) =>
     axios.put(`${BASE}/${id}`, { stato, note }, { headers: h(token) }).then(r => r.data),
+
+  // Vista matrice riepilogo per-cliente
+  matrice: (token, anno, mese) =>
+    axios.get(`${BASE}/matrice/${anno}`, {
+      params: mese ? { mese } : {},
+      headers: h(token),
+    }).then(r => r.data),
 };
