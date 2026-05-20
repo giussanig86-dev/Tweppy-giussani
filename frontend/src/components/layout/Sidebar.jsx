@@ -1,16 +1,11 @@
 import { NavLink } from 'react-router-dom';
 
 const navItems = [
-  { to: '/anagrafica', label: 'Anagrafica' },
   { to: '/tasks', label: 'Task' },
-  { to: '/checklist', label: 'Scadenze Fiscali' },
-  { to: '/documenti', label: 'Documenti' },
-  { to: '/templates', label: 'Template' },
-  { to: '/calendario', label: 'Calendario' },
   { to: '/comunicazioni', label: 'Comunicazioni' },
-  { to: '/ocr', label: 'OCR Documenti' },
-  { to: '/workflow', label: 'Workflow' },
-  { to: '/parcellazione', label: 'Parcellazione' },
+  { to: '/calendario', label: 'Calendario' },
+  { to: '/checklist', label: 'Scadenze Fiscali' },
+  { to: '/templates', label: 'Template' },
 ];
 
 export default function Sidebar() {
