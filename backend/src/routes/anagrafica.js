@@ -67,10 +67,12 @@ router.put('/:id', async (req, res) => {
     const fields = { ...data, updatedAt: new Date().toISOString() };
     await updateListItem(req.graphToken, LIST_NAME, req.params.id, fields);
     if (data.stato === 'cessato') {
+      const today = new Date().toISOString().slice(0, 10);
       const safeId = req.params.id.replace(/'/g, "''");
       const filter = `fields/clienteId eq '${safeId}'`;
       const clItems = await getListItems(req.graphToken, 'Checklist_Adempimenti', filter);
-      await Promise.all(clItems.map(i => deleteListItem(req.graphToken, 'Checklist_Adempimenti', i.id)));
+      const futuri = clItems.filter(i => (i.scadenza || '') >= today);
+      await Promise.all(futuri.map(i => deleteListItem(req.graphToken, 'Checklist_Adempimenti', i.id)));
     }
     res.json({ success: true });
   } catch (err) {

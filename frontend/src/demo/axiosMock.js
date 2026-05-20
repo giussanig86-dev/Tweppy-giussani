@@ -30,7 +30,15 @@ if (import.meta.env.VITE_DEMO_MODE === 'true') {
       if (m2 === 'get' && !id) return ok(clienti.filter(c => c.stato !== 'eliminato'));
       if (m2 === 'get' && id) return ok(clienti.find(c => c.id === id));
       if (m2 === 'post') { const n = { id: uuid(), stato: 'attivo', ...body }; clienti.push(n); return ok(n, 201); }
-      if (m2 === 'put') { clienti = clienti.map(c => c.id === id ? { ...c, ...body } : c); return ok({ success: true }); }
+      if (m2 === 'put') {
+        const prev = clienti.find(c => c.id === id);
+        clienti = clienti.map(c => c.id === id ? { ...c, ...body } : c);
+        if (body.stato === 'cessato' && prev?.stato !== 'cessato') {
+          const today = new Date().toISOString().slice(0, 10);
+          checklist = checklist.filter(c => c.clienteId !== id || (c.scadenza || '') < today);
+        }
+        return ok({ success: true });
+      }
       if (m2 === 'delete') { clienti = clienti.map(c => c.id === id ? { ...c, stato: 'eliminato' } : c); return ok({ success: true }); }
     }
 
