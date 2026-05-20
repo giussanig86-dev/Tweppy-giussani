@@ -32,35 +32,24 @@ function formatBytes(n) {
   return `${(n / 1024 / 1024).toFixed(1)} MB`;
 }
 
-function AllegatiPreview({ allegati }) {
-  const [viewer, setViewer] = useState(null); // { att, blobUrl }
+function AllegatiPreview({ allegati, messageId, casella }) {
+  const { getToken } = useAuth();
+  const [viewer, setViewer] = useState(null);
+  const [loadingAtt, setLoadingAtt] = useState(null);
 
-  function b64toBlob(b64, type) {
-    const bin = atob(b64);
-    const arr = new Uint8Array(bin.length);
-    for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
-    return new Blob([arr], { type });
-  }
-
-  function openViewer(att) {
-    if (!att.contentBytes) return;
-    const blob = b64toBlob(att.contentBytes, att.contentType);
-    const blobUrl = URL.createObjectURL(blob);
-    setViewer({ att, blobUrl });
+  async function openViewer(att) {
+    const key = att.id || att.name;
+    setLoadingAtt(key);
+    try {
+      const token = await getToken();
+      const blob = await emailApi.streamAllegato(token, messageId, att.id, att.name, att.contentType, casella);
+      setViewer({ att, blobUrl: URL.createObjectURL(blob) });
+    } finally { setLoadingAtt(null); }
   }
 
   function closeViewer() {
     if (viewer?.blobUrl) URL.revokeObjectURL(viewer.blobUrl);
     setViewer(null);
-  }
-
-  function download(att) {
-    if (!att.contentBytes) return;
-    const blob = b64toBlob(att.contentBytes, att.contentType);
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url; a.download = att.name; a.click();
-    setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
 
   if (!allegati?.length) return null;
@@ -71,36 +60,25 @@ function AllegatiPreview({ allegati }) {
         {allegati.map((att, i) => {
           const isImg = att.contentType?.startsWith('image/');
           const isPdf = att.contentType === 'application/pdf';
-          const canPreview = att.contentBytes && (isImg || isPdf);
+          const canPreview = isImg || isPdf;
           const cfg = FILE_ICONS[att.contentType] || { icon: '📎', color: 'text-gray-500', bg: 'bg-gray-50' };
-
-          if (isImg && att.contentBytes) {
-            return (
-              <button key={i} onClick={() => openViewer(att)}
-                className="relative rounded-lg overflow-hidden border border-gray-200 hover:shadow-md transition-shadow group">
-                <img
-                  src={`data:${att.contentType};base64,${att.contentBytes}`}
-                  alt={att.name}
-                  className="w-24 h-20 object-cover"
-                />
-                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center">
-                  <span className="text-white text-xs opacity-0 group-hover:opacity-100 font-medium">🔍 Apri</span>
-                </div>
-                <div className="absolute bottom-0 left-0 right-0 bg-black/50 text-white text-[10px] px-1 py-0.5 truncate">
-                  {att.name}
-                </div>
-              </button>
-            );
-          }
+          const loading = loadingAtt === (att.id || att.name);
 
           return (
-            <button key={i} onClick={() => canPreview ? openViewer(att) : download(att)}
-              className={`flex items-center gap-2 px-3 py-2 rounded-lg border border-gray-200 ${cfg.bg} hover:shadow-sm transition-shadow text-left`}>
-              <span className="text-xl">{cfg.icon}</span>
+            <button
+              key={i}
+              onClick={() => canPreview ? openViewer(att) : undefined}
+              disabled={loading}
+              className={`flex items-center gap-2 px-3 py-2 rounded-lg border border-gray-200 ${cfg.bg} hover:shadow-sm transition text-left ${canPreview ? 'cursor-pointer' : 'cursor-default opacity-70'}`}
+            >
+              {loading
+                ? <span className="text-lg">⏳</span>
+                : <span className="text-xl">{isImg ? '🖼' : cfg.icon}</span>
+              }
               <div>
                 <p className={`text-xs font-medium ${cfg.color} truncate max-w-[130px]`}>{att.name}</p>
                 <p className="text-[10px] text-gray-400">
-                  {formatBytes(att.size)} · {canPreview ? 'clicca per visualizzare' : 'non disponibile'}
+                  {formatBytes(att.size)} · {canPreview ? (loading ? 'caricamento...' : 'clicca per visualizzare') : 'formato non supportato'}
                 </p>
               </div>
             </button>
@@ -108,25 +86,22 @@ function AllegatiPreview({ allegati }) {
         })}
       </div>
 
-      {/* Viewer lightbox */}
       {viewer && (
         <div className="fixed inset-0 bg-black/85 z-50 flex flex-col" onClick={closeViewer}>
-          {/* Toolbar */}
           <div className="flex items-center justify-between px-5 py-3 shrink-0" onClick={e => e.stopPropagation()}>
             <p className="text-white font-medium text-sm truncate">{viewer.att.name}</p>
             <div className="flex gap-2">
-              <button onClick={() => download(viewer.att)}
-                className="text-white text-xs bg-white/20 hover:bg-white/30 px-3 py-1.5 rounded-lg transition font-medium">
+              <button
+                onClick={() => { const a = document.createElement('a'); a.href = viewer.blobUrl; a.download = viewer.att.name; a.click(); }}
+                className="text-white text-xs bg-white/20 hover:bg-white/30 px-3 py-1.5 rounded-lg transition font-medium"
+              >
                 ⬇ Scarica
               </button>
-              <button onClick={closeViewer}
-                className="text-white text-xs bg-white/20 hover:bg-white/30 px-3 py-1.5 rounded-lg transition font-medium">
+              <button onClick={closeViewer} className="text-white text-xs bg-white/20 hover:bg-white/30 px-3 py-1.5 rounded-lg transition font-medium">
                 ✕ Chiudi
               </button>
             </div>
           </div>
-
-          {/* Contenuto */}
           <div className="flex-1 overflow-hidden p-4" onClick={e => e.stopPropagation()}>
             {viewer.att.contentType?.startsWith('image/') ? (
               <img
@@ -160,21 +135,32 @@ export default function ComunicazioniPage() {
   const [scanning, setScanning] = useState(false);
   const [scanResult, setScanResult] = useState(null);
   const [error, setError] = useState(null);
+  const [spUrl, setSpUrl] = useState(null);
+
+  // Sconosciuti
+  const [sconosciuti, setSconosciuti] = useState([]);
+  const [showSconosciuti, setShowSconosciuti] = useState(false);
+  const [assegnaModal, setAssegnaModal] = useState(null);
+  const [assegnaClienteId, setAssegnaClienteId] = useState('');
+  const [assegnando, setAssegnando] = useState(false);
 
   // Chat state
   const [expandedId, setExpandedId] = useState(null);
-  const [corpi, setCorpi] = useState({});        // messageId → body html
-  const [allegatiMap, setAllegatiMap] = useState({});  // messageId → allegati[]
+  const [corpi, setCorpi] = useState({});
+  const [allegatiMap, setAllegatiMap] = useState({});
   const [loadingMsg, setLoadingMsg] = useState(null);
 
   // Reply state
-  const [replyTo, setReplyTo] = useState(null);  // { messageId, subject, casella }
+  const [replyTo, setReplyTo] = useState(null);
   const [replyText, setReplyText] = useState('');
   const [casellaMittente, setCasellaMittente] = useState('me');
   const [sending, setSending] = useState(false);
+  const [replyFiles, setReplyFiles] = useState([]);
+  const [dragOver, setDragOver] = useState(false);
+  const fileInputRef = useRef(null);
 
   // Task da mail
-  const [taskModal, setTaskModal] = useState(null); // { messageId, casella, titolo }
+  const [taskModal, setTaskModal] = useState(null);
   const [taskForm, setTaskForm] = useState({ assegnato: '', priorita: 'media' });
   const [savingTask, setSavingTask] = useState(false);
 
@@ -182,23 +168,29 @@ export default function ComunicazioniPage() {
 
   useEffect(() => {
     getToken().then(async t => {
-      const [cl, ca] = await Promise.all([
+      const [cl, ca, sc] = await Promise.all([
         anagraficaApi.list(t).catch(() => []),
         emailApi.caselle(t).catch(() => ['me']),
+        emailApi.sconosciuti(t).catch(() => []),
       ]);
       setClienti(cl.filter(c => c.stato !== 'eliminato'));
       setCaselle(ca);
       setCasellaMittente(ca[0] || 'me');
+      setSconosciuti(sc);
     });
   }, []);
 
   async function loadStorico(cliente) {
     if (!cliente) return;
-    setLoading(true); setError(null); setTimeline([]); setExpandedId(null); setReplyTo(null);
+    setLoading(true); setError(null); setTimeline([]); setExpandedId(null); setReplyTo(null); setSpUrl(null); setReplyFiles([]);
     try {
       const token = await getToken();
-      const data = await emailApi.storico(token, cliente.id);
+      const [data, sp] = await Promise.all([
+        emailApi.storico(token, cliente.id),
+        emailApi.sharepointUrl(token, cliente.id).catch(() => ({ url: null })),
+      ]);
       setTimeline(data.timeline || []);
+      setSpUrl(sp.url || null);
     } catch (e) { setError(e.message); } finally { setLoading(false); }
   }
 
@@ -235,8 +227,7 @@ export default function ComunicazioniPage() {
     setSending(true);
     try {
       const token = await getToken();
-      await emailApi.rispondi(token, replyTo.messageId, replyText, casellaMittente);
-      // aggiunge bolla ottimistica
+      await emailApi.rispondi(token, replyTo.messageId, replyText, casellaMittente, replyFiles);
       setTimeline(prev => [{
         tipo: 'email_inviata',
         data: new Date().toISOString(),
@@ -244,7 +235,7 @@ export default function ComunicazioniPage() {
         email: clienteSelezionato?.email || '',
         casella: casellaMittente,
       }, ...prev]);
-      setReplyTo(null); setReplyText('');
+      setReplyTo(null); setReplyText(''); setReplyFiles([]);
     } catch (e) { setError(e.message); } finally { setSending(false); }
   }
 
@@ -266,9 +257,24 @@ export default function ComunicazioniPage() {
     } catch (e) { setError(e.message); } finally { setSavingTask(false); }
   }
 
-  const cercaCliente = (v) => clienti.filter(c =>
-    c.ragioneSociale.toLowerCase().includes(v.toLowerCase())
-  );
+  async function handleAssegna() {
+    if (!assegnaModal || !assegnaClienteId) return;
+    setAssegnando(true);
+    try {
+      const token = await getToken();
+      const cliente = clienti.find(c => c.id === assegnaClienteId);
+      await emailApi.taskDaMail(token, {
+        messageId: assegnaModal.messageId,
+        mailbox: assegnaModal.casella || 'me',
+        clienteId: assegnaClienteId,
+        clienteNome: cliente?.ragioneSociale || '',
+        titolo: `Email: ${assegnaModal.oggetto}`,
+        assegnato: '', priorita: 'media',
+      });
+      setSconosciuti(prev => prev.filter(e => e.messageId !== assegnaModal.messageId));
+      setAssegnaModal(null);
+    } catch (e) { setError(e.message); } finally { setAssegnando(false); }
+  }
 
   return (
     <div className="flex h-[calc(100vh-64px)] overflow-hidden gap-0">
@@ -281,10 +287,6 @@ export default function ComunicazioniPage() {
             type="text"
             placeholder="Cerca cliente..."
             className="w-full border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
-            onChange={e => {
-              const v = e.target.value;
-              if (!v) return;
-            }}
           />
         </div>
 
@@ -305,6 +307,36 @@ export default function ComunicazioniPage() {
           ))}
         </div>
 
+        {/* Sezione email da sconosciuti */}
+        <div className="border-t">
+          <button
+            onClick={() => setShowSconosciuti(p => !p)}
+            className="w-full text-left px-4 py-2 text-xs font-medium text-gray-500 flex items-center justify-between hover:bg-gray-100 transition"
+          >
+            <span>📭 Da sconosciuti ({sconosciuti.length})</span>
+            <span>{showSconosciuti ? '▲' : '▼'}</span>
+          </button>
+          {showSconosciuti && (
+            <div className="max-h-48 overflow-y-auto">
+              {sconosciuti.length === 0 && (
+                <p className="text-xs text-gray-400 px-4 py-2">Nessuna email da sconosciuti</p>
+              )}
+              {sconosciuti.map((e, i) => (
+                <div key={i} className="px-4 py-2 text-xs border-b bg-amber-50 hover:bg-amber-100 transition">
+                  <p className="font-medium text-gray-700 truncate">{e.mittente}</p>
+                  <p className="text-gray-500 truncate">{e.oggetto}</p>
+                  <button
+                    onClick={() => { setAssegnaModal(e); setAssegnaClienteId(''); }}
+                    className="text-brand-600 hover:underline mt-0.5"
+                  >
+                    Assegna a cliente
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
         <div className="p-3 border-t">
           <Button size="sm" variant="secondary" className="w-full" onClick={handleScansiona} disabled={scanning}>
             {scanning ? 'Scansione...' : '🔄 Scansiona inbox'}
@@ -321,16 +353,27 @@ export default function ComunicazioniPage() {
         {/* Header */}
         <div className="px-5 py-3 border-b bg-white flex items-center justify-between shrink-0">
           {clienteSelezionato ? (
-            <div>
-              <p className="font-semibold text-gray-800">{clienteSelezionato.ragioneSociale}</p>
-              {clienteSelezionato.email && <p className="text-xs text-gray-400">{clienteSelezionato.email}</p>}
+            <div className="flex items-center gap-3">
+              <div>
+                <p className="font-semibold text-gray-800">{clienteSelezionato.ragioneSociale}</p>
+                {clienteSelezionato.email && <p className="text-xs text-gray-400">{clienteSelezionato.email}</p>}
+              </div>
+              {spUrl && (
+                <button
+                  onClick={() => window.open(spUrl, '_blank')}
+                  title="Apri cartella SharePoint"
+                  className="text-xs bg-gray-100 hover:bg-gray-200 px-2 py-1 rounded-lg flex items-center gap-1 transition shrink-0"
+                >
+                  📁 Cartella
+                </button>
+              )}
             </div>
           ) : (
             <p className="text-gray-400">Seleziona un cliente dalla lista</p>
           )}
           {caselle.length > 1 && (
             <div className="flex items-center gap-2 text-xs text-gray-500">
-              <span>Casella monitorata:</span>
+              <span>Caselle:</span>
               {caselle.map(c => (
                 <span key={c} className="bg-gray-100 px-2 py-0.5 rounded">{c === 'me' ? '(principale)' : c}</span>
               ))}
@@ -353,7 +396,6 @@ export default function ComunicazioniPage() {
             <p className="text-center text-gray-400 mt-20">Nessuna comunicazione registrata.</p>
           )}
 
-          {/* Timeline in ordine cronologico ascendente per la chat */}
           {[...timeline].reverse().map((item, i) => {
             if (item.tipo === 'task' || item.tipo === 'documento') {
               return (
@@ -374,7 +416,6 @@ export default function ComunicazioniPage() {
             return (
               <div key={i} className={`flex ${isRicevuta ? 'justify-start' : 'justify-end'}`}>
                 <div className={`max-w-[75%] ${isRicevuta ? '' : 'items-end flex flex-col'}`}>
-                  {/* Casella badge */}
                   {item.casella && item.casella !== 'me' && (
                     <span className="text-xs text-gray-400 mb-0.5 px-1">📬 {item.casella}</span>
                   )}
@@ -391,12 +432,10 @@ export default function ComunicazioniPage() {
                       {item.titolo}
                     </p>
 
-                    {/* Preview */}
                     {isRicevuta && item.preview && !isExpanded && (
                       <p className="text-xs text-gray-500 mt-0.5 line-clamp-2">{item.preview}</p>
                     )}
 
-                    {/* Corpo espanso */}
                     {isRicevuta && isExpanded && (
                       <div className="mt-2 border-t pt-2">
                         {loadingMsg === item.messageId ? (
@@ -407,10 +446,14 @@ export default function ComunicazioniPage() {
                             dangerouslySetInnerHTML={{ __html: corpi[item.messageId] || item.preview }}
                           />
                         )}
-                        <AllegatiPreview allegati={allegatiMap[item.messageId]} />
+                        <AllegatiPreview
+                          allegati={allegatiMap[item.messageId]}
+                          messageId={item.messageId}
+                          casella={item.casella}
+                        />
                         <div className="flex gap-2 mt-2 pt-2 border-t">
                           <button
-                            onClick={(e) => { e.stopPropagation(); setReplyTo({ messageId: item.messageId, subject: item.titolo, casella: item.casella }); setReplyText(''); }}
+                            onClick={(e) => { e.stopPropagation(); setReplyTo({ messageId: item.messageId, subject: item.titolo, casella: item.casella }); setReplyText(''); setReplyFiles([]); }}
                             className="text-xs bg-brand-50 text-brand-700 hover:bg-brand-100 px-2 py-1 rounded font-medium transition"
                           >
                             ↩ Rispondi
@@ -448,7 +491,7 @@ export default function ComunicazioniPage() {
                 <p className="text-xs text-gray-500">
                   ↩ <span className="font-medium">In risposta a:</span> {replyTo.subject}
                 </p>
-                <button onClick={() => setReplyTo(null)} className="text-gray-400 hover:text-gray-600 text-xs">✕</button>
+                <button onClick={() => { setReplyTo(null); setReplyFiles([]); }} className="text-gray-400 hover:text-gray-600 text-xs">✕</button>
               </div>
             )}
             <div className="flex gap-3 items-end">
@@ -461,6 +504,44 @@ export default function ComunicazioniPage() {
                   disabled={!replyTo}
                   className="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-brand-500 disabled:bg-gray-50 disabled:text-gray-400"
                 />
+                {replyTo && (
+                  <>
+                    <div
+                      onDragOver={e => { e.preventDefault(); setDragOver(true); }}
+                      onDragLeave={() => setDragOver(false)}
+                      onDrop={e => { e.preventDefault(); setDragOver(false); setReplyFiles(prev => [...prev, ...Array.from(e.dataTransfer.files)]); }}
+                      className={`mt-1 border-2 border-dashed rounded-lg px-3 py-1.5 text-xs text-center transition cursor-default ${dragOver ? 'border-brand-400 bg-brand-50 text-brand-600' : 'border-gray-200 text-gray-400'}`}
+                    >
+                      Trascina allegati qui o{' '}
+                      <button type="button" onClick={() => fileInputRef.current?.click()} className="text-brand-600 hover:underline">
+                        sfoglia
+                      </button>
+                      <input
+                        type="file"
+                        multiple
+                        ref={fileInputRef}
+                        className="hidden"
+                        onChange={e => { setReplyFiles(prev => [...prev, ...Array.from(e.target.files)]); e.target.value = ''; }}
+                      />
+                    </div>
+                    {replyFiles.length > 0 && (
+                      <div className="flex flex-wrap gap-1 mt-1">
+                        {replyFiles.map((f, i) => (
+                          <span key={i} className="flex items-center gap-1 text-xs bg-blue-50 text-blue-700 px-2 py-0.5 rounded">
+                            📎 {f.name} ({formatBytes(f.size)})
+                            <button
+                              type="button"
+                              onClick={() => setReplyFiles(prev => prev.filter((_, j) => j !== i))}
+                              className="text-blue-400 hover:text-blue-600 ml-0.5 font-bold leading-none"
+                            >
+                              ×
+                            </button>
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </>
+                )}
               </div>
               <div className="flex flex-col gap-2 items-end shrink-0">
                 {caselle.length > 1 && replyTo && (
@@ -530,6 +611,35 @@ export default function ComunicazioniPage() {
               <Button variant="secondary" onClick={() => setTaskModal(null)}>Annulla</Button>
               <Button onClick={handleSalvaTask} disabled={savingTask}>
                 {savingTask ? 'Salvataggio...' : 'Crea Task'}
+              </Button>
+            </div>
+          </div>
+        )}
+      </Modal>
+
+      {/* Modal Assegna Email Sconosciuta */}
+      <Modal open={!!assegnaModal} onClose={() => setAssegnaModal(null)} title="Assegna Email a Cliente">
+        {assegnaModal && (
+          <div className="space-y-4">
+            <div className="bg-amber-50 rounded-lg p-3 text-sm">
+              <p><span className="text-gray-500">Da:</span> <strong>{assegnaModal.mittente}</strong></p>
+              <p className="mt-1 text-gray-600 truncate">{assegnaModal.oggetto}</p>
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Assegna a cliente</label>
+              <select
+                value={assegnaClienteId}
+                onChange={e => setAssegnaClienteId(e.target.value)}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-brand-500"
+              >
+                <option value="">— seleziona cliente —</option>
+                {clienti.map(c => <option key={c.id} value={c.id}>{c.ragioneSociale}</option>)}
+              </select>
+            </div>
+            <div className="flex justify-end gap-3">
+              <Button variant="secondary" onClick={() => setAssegnaModal(null)}>Annulla</Button>
+              <Button onClick={handleAssegna} disabled={!assegnaClienteId || assegnando}>
+                {assegnando ? 'Salvataggio...' : 'Crea Task'}
               </Button>
             </div>
           </div>

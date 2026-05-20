@@ -1,15 +1,18 @@
 const express = require('express');
 const path = require('path');
+const multer = require('multer');
 const { v4: uuidv4 } = require('uuid');
 const {
   getInboxMessages, getMessageWithAttachments, getClientMessages,
-  getMessage, replyToMessage,
+  getMessage, replyToMessage, streamAttachment,
+  createReplyDraft, addAttachmentToDraft, sendDraft,
 } = require('../graph/messages');
 const { getListItems, getListItemById, createListItem } = require('../graph/sharepoint');
 const { saveClientDocument } = require('../graph/files');
 const { sanitizeFileName } = require('../utils/fileUtils');
 
 const router = express.Router();
+const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 25 * 1024 * 1024 } });
 
 const ALLOWED_EXTS = new Set(['.pdf', '.docx', '.xlsx', '.xls', '.jpg', '.jpeg', '.png', '.zip']);
 
@@ -37,7 +40,7 @@ router.get('/messaggio/:messageId', async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// Allegati di un messaggio (con contenuto inline per immagini < 1MB)
+// Lista allegati di un messaggio (con id per lo streaming)
 router.get('/allegati/:messageId', async (req, res) => {
   try {
     const mailbox = req.query.mailbox || 'me';
@@ -45,27 +48,64 @@ router.get('/allegati/:messageId', async (req, res) => {
     const allegati = (fullMsg.attachments || [])
       .filter(a => a['@odata.type'] === '#microsoft.graph.fileAttachment')
       .map(a => ({
+        id: a.id,
         name: a.name,
         contentType: a.contentType,
         size: a.size,
-        // Includi bytes per file < 5MB — il frontend decide come usarli (preview vs download)
-        contentBytes: (a.size || 0) < 5 * 1024 * 1024 ? a.contentBytes : null,
       }));
     res.json(allegati);
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// Rispondi a un messaggio
-router.post('/rispondi/:messageId', async (req, res) => {
+// Stream di un singolo allegato (qualunque dimensione)
+router.get('/allegati/:messageId/:attachmentId/stream', async (req, res) => {
   try {
-    const { testo, mailbox = 'me' } = req.body;
+    const { messageId, attachmentId } = req.params;
+    const mailbox = req.query.mailbox || 'me';
+    const name = req.query.name || 'allegato';
+    const contentType = req.query.contentType || 'application/octet-stream';
+    const response = await streamAttachment(req.graphToken, messageId, attachmentId, mailbox);
+    res.setHeader('Content-Type', contentType);
+    res.setHeader('Content-Disposition', `inline; filename="${encodeURIComponent(name)}"`);
+    response.data.pipe(res);
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// URL cartella SharePoint del cliente
+router.get('/sharepoint-url/:clienteId', async (req, res) => {
+  try {
+    const { clienteId } = req.params;
+    const cliente = await getListItemById(req.graphToken, 'Anagrafica_GDS', clienteId);
+    const siteUrl = (process.env.SHAREPOINT_SITE_URL || '').replace(/\/$/, '');
+    if (!siteUrl) return res.json({ url: null });
+    const folder = encodeURIComponent(cliente.ragioneSociale);
+    res.json({ url: `${siteUrl}/Shared%20Documents/01%20-%20Clienti/${folder}` });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// Rispondi a un messaggio (con allegati opzionali via multipart)
+router.post('/rispondi/:messageId', upload.array('files'), async (req, res) => {
+  try {
+    const testo = req.body.testo || '';
+    const mailbox = req.body.mailbox || 'me';
     const { messageId } = req.params;
 
-    // Recupera il messaggio per ottenere subject e clienteId dai dati passati
     const msg = await getMessage(req.graphToken, messageId, mailbox);
-    await replyToMessage(req.graphToken, messageId, testo, mailbox);
 
-    // Registra in Invii_Log
+    if (req.files?.length > 0) {
+      const draft = await createReplyDraft(req.graphToken, messageId, testo, mailbox);
+      for (const file of req.files) {
+        await addAttachmentToDraft(req.graphToken, draft.id, {
+          name: file.originalname,
+          contentType: file.mimetype,
+          contentBytes: file.buffer.toString('base64'),
+        }, mailbox);
+      }
+      await sendDraft(req.graphToken, draft.id, mailbox);
+    } else {
+      await replyToMessage(req.graphToken, messageId, testo, mailbox);
+    }
+
     const clienteId = req.body.clienteId || '';
     await createListItem(req.graphToken, 'Invii_Log', {
       id: uuidv4(),
@@ -124,7 +164,20 @@ router.get('/scansiona', async (req, res) => {
         const cliente = clienti.find(
           (c) => c.email?.toLowerCase() === senderEmail || c.pec?.toLowerCase() === senderEmail
         );
-        if (!cliente) continue;
+
+        if (!cliente) {
+          await createListItem(req.graphToken, 'Email_Sconosciute_Log', {
+            id: uuidv4(),
+            casella,
+            mittente: senderEmail,
+            oggetto: msg.subject,
+            preview: msg.bodyPreview,
+            messageId: msg.id,
+            data: msg.receivedDateTime,
+            createdAt: new Date().toISOString(),
+          });
+          continue;
+        }
 
         await createListItem(req.graphToken, 'Task_Log', {
           id: uuidv4(),
@@ -171,6 +224,20 @@ router.get('/scansiona', async (req, res) => {
     }
 
     res.json({ elaborati: risultati.length, dettaglio: risultati });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// Email da mittenti non riconosciuti
+router.get('/sconosciuti', async (req, res) => {
+  try {
+    const ore = parseInt(req.query.ore) || 168;
+    const since = new Date();
+    since.setHours(since.getHours() - ore);
+    const all = await getListItems(req.graphToken, 'Email_Sconosciute_Log');
+    const filtered = all
+      .filter(e => e.createdAt && new Date(e.createdAt) >= since)
+      .sort((a, b) => new Date(b.data || b.createdAt) - new Date(a.data || a.createdAt));
+    res.json(filtered);
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 

@@ -103,6 +103,15 @@ if (import.meta.env.VITE_DEMO_MODE === 'true') {
 
     // ── email / comunicazioni ──────────────────────────────────────────────
     if (url.startsWith('/api/email')) {
+      const PDF_B64 = 'JVBERi0xLjQKMSAwIG9iajw8L1R5cGUvQ2F0YWxvZy9QYWdlcyAyIDAgUj4+ZW5kb2JqCjIgMCBvYmo8PC9UeXBlL1BhZ2VzL0tpZHNbMyAwIFJdL0NvdW50IDE+PmVuZG9iagozIDAgb2JqPDwvVHlwZS9QYWdlL01lZGlhQm94WzAgMCA2MTIgNzkyXS9QYXJlbnQgMiAwIFIvUmVzb3VyY2VzPDwvRm9udDw8L0YxIDQgMCBSPj4+Pi9Db250ZW50cyA1IDAgUj4+ZW5kb2JqCjQgMCBvYmo8PC9UeXBlL0ZvbnQvU3VidHlwZS9UeXBlMS9CYXNlRm9udC9IZWx2ZXRpY2E+PmVuZG9iago1IDAgb2JqPDwvTGVuZ3RoIDQ0Pj4Kc3RyZWFtCkJUIC9GMSAxOCBUZiA1MCA3MDAgVGQgKENVIDIwMjQgLSBEZW1vKSBUaiBFVAplbmRzdHJlYW0KZW5kb2JqCnhyZWYKMCA2CjAwMDAwMDAwMDAgNjU1MzUgZiAKMDAwMDAwMDAwOSAwMDAwMCBuIAowMDAwMDAwMDU4IDAwMDAwIG4gCjAwMDAwMDAxMTUgMDAwMDAgbiAKMDAwMDAwMDI2NiAwMDAwMCBuIAowMDAwMDAwMzQ3IDAwMDAwIG4gCnRyYWlsZXI8PC9TaXplIDYvUm9vdCAxIDAgUj4+CnN0YXJ0eHJlZgo0NDcKJSVFT0Y=';
+      const IMG_B64 = '/9j/4AAQSkZJRgABAQEASABIAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRofHh0aHBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL/2wBDAQkJCQwLDBgNDRgyIRwhMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjL/wAARCAABAAEDASIAAhEBAxEB/8QAFAABAAAAAAAAAAAAAAAAAAAACf/EABQQAQAAAAAAAAAAAAAAAAAAAAD/xAAUAQEAAAAAAAAAAAAAAAAAAAAA/8QAFBEBAAAAAAAAAAAAAAAAAAAAAP/aAAwDAQACEQMRAD8AJQAB/9k=';
+      function b64toBlob(b64, type) {
+        const bin = atob(b64);
+        const arr = new Uint8Array(bin.length);
+        for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
+        return new Blob([arr], { type });
+      }
+
       if (url.includes('/caselle')) return ok(['me', 'info@studiogds.it']);
       if (url.includes('/scansiona')) return ok({ elaborati: 0, dettaglio: [] });
       if (url.includes('/task-da-mail')) {
@@ -110,20 +119,34 @@ if (import.meta.env.VITE_DEMO_MODE === 'true') {
         tasks.push(n);
         return ok(n, 201);
       }
+
+      // Stream endpoint — must come before /allegati/ check
+      if (url.match(/\/allegati\/[^/?]+\/[^/?]+\/stream/)) {
+        const urlParams = new URLSearchParams(url.split('?')[1] || '');
+        const ct = urlParams.get('contentType') || 'application/pdf';
+        let blob;
+        if (ct.startsWith('image/')) {
+          blob = b64toBlob(IMG_B64, ct);
+        } else if (ct === 'application/pdf') {
+          blob = b64toBlob(PDF_B64, 'application/pdf');
+        } else {
+          blob = new Blob(['[Demo] Contenuto file simulato'], { type: ct });
+        }
+        return ok(blob);
+      }
+
       if (url.includes('/allegati/')) return ok([
-        {
-          name: 'CU_2024.pdf',
-          contentType: 'application/pdf',
-          size: 1243,
-          contentBytes: 'JVBERi0xLjQKMSAwIG9iajw8L1R5cGUvQ2F0YWxvZy9QYWdlcyAyIDAgUj4+ZW5kb2JqCjIgMCBvYmo8PC9UeXBlL1BhZ2VzL0tpZHNbMyAwIFJdL0NvdW50IDE+PmVuZG9iagozIDAgb2JqPDwvVHlwZS9QYWdlL01lZGlhQm94WzAgMCA2MTIgNzkyXS9QYXJlbnQgMiAwIFIvUmVzb3VyY2VzPDwvRm9udDw8L0YxIDQgMCBSPj4+Pi9Db250ZW50cyA1IDAgUj4+ZW5kb2JqCjQgMCBvYmo8PC9UeXBlL0ZvbnQvU3VidHlwZS9UeXBlMS9CYXNlRm9udC9IZWx2ZXRpY2E+PmVuZG9iago1IDAgb2JqPDwvTGVuZ3RoIDQ0Pj4Kc3RyZWFtCkJUIC9GMSAxOCBUZiA1MCA3MDAgVGQgKENVIDIwMjQgLSBEZW1vKSBUaiBFVAplbmRzdHJlYW0KZW5kb2JqCnhyZWYKMCA2CjAwMDAwMDAwMDAgNjU1MzUgZiAKMDAwMDAwMDAwOSAwMDAwMCBuIAowMDAwMDAwMDU4IDAwMDAwIG4gCjAwMDAwMDAxMTUgMDAwMDAgbiAKMDAwMDAwMDI2NiAwMDAwMCBuIAowMDAwMDAwMzQ3IDAwMDAwIG4gCnRyYWlsZXI8PC9TaXplIDYvUm9vdCAxIDAgUj4+CnN0YXJ0eHJlZgo0NDcKJSVFT0Y=',
-        },
-        {
-          name: 'Spese_mediche.jpg',
-          contentType: 'image/jpeg',
-          size: 134200,
-          contentBytes: '/9j/4AAQSkZJRgABAQEASABIAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRofHh0aHBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL/2wBDAQkJCQwLDBgNDRgyIRwhMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjL/wAARCAABAAEDASIAAhEBAxEB/8QAFAABAAAAAAAAAAAAAAAAAAAACf/EABQQAQAAAAAAAAAAAAAAAAAAAAD/xAAUAQEAAAAAAAAAAAAAAAAAAAAA/8QAFBEBAAAAAAAAAAAAAAAAAAAAAP/aAAwDAQACEQMRAD8AJQAB/9k=',
-        },
+        { id: 'att-1', name: 'CU_2024.pdf', contentType: 'application/pdf', size: 1243 },
+        { id: 'att-2', name: 'Spese_mediche.jpg', contentType: 'image/jpeg', size: 134200 },
       ]);
+
+      if (url.includes('/sharepoint-url/')) return ok({ url: 'https://studiogds.sharepoint.com/Shared%20Documents/01%20-%20Clienti' });
+
+      if (url.includes('/sconosciuti')) return ok([
+        { id: 's1', mittente: 'fornitore@acme.it', oggetto: 'Offerta commerciale software', preview: 'In allegato la nostra migliore offerta...', messageId: 'msg-sc-1', casella: 'me', data: new Date().toISOString() },
+        { id: 's2', mittente: 'newsletter@fiscooggi.it', oggetto: 'Newsletter fiscale giugno 2025', preview: 'Le ultime novità in materia fiscale...', messageId: 'msg-sc-2', casella: 'info@studiogds.it', data: new Date(Date.now() - 3600000).toISOString() },
+      ]);
+
       if (url.includes('/messaggio/')) return ok({
         id: 'msg-demo-1',
         subject: 'Documenti per 730',

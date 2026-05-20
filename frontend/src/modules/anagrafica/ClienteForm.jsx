@@ -2,6 +2,11 @@ import { useState } from 'react';
 import { validateCodiceFiscale, validatePartitaIva } from '../../utils/validators';
 import Button from '../../components/ui/Button';
 
+const CATEGORIE_ANAGRAFICA = [
+  'avvocato', 'studio paghe', 'aggiornamento professionale',
+  'comunicazioni', 'software', 'contabilità', 'fiscale',
+];
+
 const TIPOLOGIE_CLIENTE = [
   'imprenditore individuale', 'professionista', 'società persone',
   'società capitali', 'associazione', 'ente non commerciale',
@@ -14,7 +19,7 @@ const IVA_PERIODICITA = ['mensile', 'trimestrale', 'esonerato'];
 
 const EMPTY = {
   ragioneSociale: '', codiceFiscale: '', partitaIva: '',
-  tipoSoggetto: '', tipologiaCliente: '', tipologiaContabilita: '',
+  tipoSoggetto: '', tipologiaCliente: '', categoriaAnagrafica: '', tipologiaContabilita: '',
   regimeFiscale: '', atecoCode: '', settore: '',
   ivaPeriodicita: '', soggettoISA: false, soggettoRitenute: false, dipendenti: 0,
   indirizzo: '', cap: '', comune: '', provincia: '',
@@ -124,6 +129,11 @@ export default function ClienteForm({ initial, onSave, onCancel }) {
           <Field label="Tipologia Cliente">
             <Select value={form.tipologiaCliente} onChange={(e) => set('tipologiaCliente', e.target.value)}>
               {TIPOLOGIE_CLIENTE.map((t) => <option key={t} value={t}>{t}</option>)}
+            </Select>
+          </Field>
+          <Field label="Categoria Anagrafica">
+            <Select value={form.categoriaAnagrafica} onChange={(e) => set('categoriaAnagrafica', e.target.value)}>
+              {CATEGORIE_ANAGRAFICA.map((c) => <option key={c} value={c}>{c}</option>)}
             </Select>
           </Field>
           <Field label="Tipologia Contabilità">
