@@ -22,8 +22,9 @@ router.get('/matrice/:anno', async (req, res) => {
   try {
     const anno = parseInt(req.params.anno);
     const mese = req.query.mese ? String(req.query.mese).padStart(2, '0') : null;
-    const filter = `fields/anno eq ${anno} and fields/clienteId ne ''`;
+    const filter = `fields/anno eq ${anno}`;
     let items = await getListItems(req.graphToken, LIST, filter);
+    items = items.filter(i => i.clienteId && i.clienteId.trim() !== '');
     if (mese) {
       items = items.filter(i => i.scadenza?.startsWith(`${anno}-${mese}`));
     }
