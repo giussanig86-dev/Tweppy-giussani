@@ -7,6 +7,55 @@ function d(anno, mese, giorno) {
   return `${anno}-${String(mese).padStart(2,'0')}-${String(giorno).padStart(2,'0')}`;
 }
 
+// Genera adempimenti standard per l'intero anno (non per singolo cliente)
+function generateAdempimentiAnno(anno) {
+  const items = [];
+  function add(adempimento, categoria, scadenza, note) {
+    items.push({ adempimento, categoria, scadenza, note: note || '', stato: 'da_fare' });
+  }
+
+  // ─── IVA ─────────────────────────────────────────────────────────────────
+  add('Dichiarazione IVA annuale', 'IVA', d(anno,4,30), `Anno d'imposta ${anno-1}`);
+  for (let m = 1; m <= 12; m++) {
+    const ms = m === 12 ? 1 : m + 1;
+    const as = m === 12 ? anno + 1 : anno;
+    add(`Liquidazione IVA mensile — ${MESI[m-1]}`, 'IVA', d(as,ms,16), 'Contribuenti IVA mensili');
+  }
+  add('Liquidazione IVA — I trim. (gen-mar)',  'IVA', d(anno,5,30), 'Con maggiorazione 1%');
+  add('Liquidazione IVA — II trim. (apr-giu)', 'IVA', d(anno,8,20), 'Con maggiorazione 1%');
+  add('Liquidazione IVA — III trim. (lug-set)','IVA', d(anno,11,16));
+  add('Liquidazione IVA — IV trim. (ott-dic)', 'IVA', d(anno+1,2,16));
+
+  // ─── Dichiarazioni ───────────────────────────────────────────────────────
+  add('Modello 730', 'Dichiarazioni', d(anno,9,30), `Anno d'imposta ${anno-1}`);
+  add('Redditi PF / SP', 'Dichiarazioni', d(anno,9,30), `Anno d'imposta ${anno-1}`);
+  add('Redditi SC — IRES', 'Dichiarazioni', d(anno,11,30), `Anno d'imposta ${anno-1} — esercizio solare`);
+  add('Dichiarazione IRAP', 'Dichiarazioni', d(anno,9,30), `Anno d'imposta ${anno-1}`);
+  add('Compilazione ISA', 'Dichiarazioni', d(anno,9,30), 'Soggetti ISA');
+
+  // ─── Acconti ─────────────────────────────────────────────────────────────
+  add('Acconto imposte — I rata', 'Acconti', d(anno,6,30), 'Proroga 30 luglio con +0,40%');
+  add('Acconto imposte — II rata', 'Acconti', d(anno,11,30));
+
+  // ─── Ritenute ────────────────────────────────────────────────────────────
+  for (let m = 1; m <= 12; m++) {
+    const ms = m === 12 ? 1 : m + 1;
+    const as = m === 12 ? anno + 1 : anno;
+    add(`F24 Ritenute — ${MESI[m-1]}`, 'Ritenute', d(as,ms,16), "Sostituti d'imposta");
+  }
+
+  // ─── Dipendenti ──────────────────────────────────────────────────────────
+  add('Certificazione Unica (CU) — trasmissione AE', 'Dipendenti', d(anno,3,31), `Anno d'imposta ${anno-1}`);
+  add('Modello 770', 'Dipendenti', d(anno,10,31), `Anno d'imposta ${anno-1}`);
+
+  // ─── Societario ──────────────────────────────────────────────────────────
+  add('Approvazione bilancio — assemblea soci', 'Societario', d(anno,4,30), 'Entro 120 gg dalla chiusura esercizio');
+  add('Deposito bilancio CCIAA', 'Societario', d(anno,5,30), "Entro 30 gg dall'approvazione");
+
+  return items.sort((a,b) => a.scadenza.localeCompare(b.scadenza));
+}
+
+// Genera checklist personalizzata per singolo cliente
 function generateChecklist(cliente, anno) {
   const {
     regimeFiscale, tipologiaCliente, ivaPeriodicita,
@@ -14,21 +63,19 @@ function generateChecklist(cliente, anno) {
   } = cliente;
 
   const adempimenti = [];
-  const forfettario   = regimeFiscale === 'forfettario';
-  const haPiva        = !!partitaIva;
-  const nDip          = parseInt(dipendenti) || 0;
-  const isPF          = ['persona fisica','professionista','imprenditore individuale'].includes(tipologiaCliente);
-  const isSC          = ['società capitali','startup innovativa'].includes(tipologiaCliente);
-  const isSP          = tipologiaCliente === 'società persone';
+  const forfettario = regimeFiscale === 'forfettario';
+  const haPiva      = !!partitaIva;
+  const nDip        = parseInt(dipendenti) || 0;
+  const isPF        = ['persona fisica','professionista','imprenditore individuale'].includes(tipologiaCliente);
+  const isSC        = ['società capitali','startup innovativa'].includes(tipologiaCliente);
+  const isSP        = tipologiaCliente === 'società persone';
 
   function add(adempimento, categoria, scadenza, note) {
     adempimenti.push({ adempimento, categoria, scadenza, note: note || '', stato: 'da_fare' });
   }
 
-  // ─── IVA ─────────────────────────────────────────────────────────────────
   if (haPiva && !forfettario && ivaPeriodicita && ivaPeriodicita !== 'esonerato') {
     add('Dichiarazione IVA annuale', 'IVA', d(anno,4,30), `Anno d'imposta ${anno-1}`);
-
     if (ivaPeriodicita === 'mensile') {
       for (let m = 1; m <= 12; m++) {
         const ms = m === 12 ? 1 : m + 1;
@@ -43,7 +90,6 @@ function generateChecklist(cliente, anno) {
     }
   }
 
-  // ─── Dichiarazioni redditi ────────────────────────────────────────────────
   if (haPiva || isPF) {
     if (forfettario || isPF || isSP) {
       const label = forfettario ? 'Redditi PF — regime forfettario' : isSP ? 'Redditi SP' : 'Redditi PF';
@@ -54,24 +100,20 @@ function generateChecklist(cliente, anno) {
     }
   }
 
-  // IRAP
   if (haPiva && !forfettario && (isSC || isSP || nDip > 0)) {
     add('Dichiarazione IRAP', 'Dichiarazioni', isSC ? d(anno,11,30) : d(anno,9,30), `Anno d'imposta ${anno-1}`);
   }
 
-  // ISA
   if (soggettoISA && haPiva && !forfettario) {
     add('Compilazione ISA', 'Dichiarazioni', isSC ? d(anno,11,30) : d(anno,9,30), 'Allegata alla dichiarazione redditi');
   }
 
-  // ─── Acconti ─────────────────────────────────────────────────────────────
   if (haPiva || isPF) {
     const tipo = forfettario ? 'Imposta sostitutiva' : isSC ? 'IRES/IRAP' : 'IRPEF/IRAP';
     add(`Acconto ${tipo} — I rata`,  'Acconti', d(anno,6,30), 'Proroga 30 luglio con +0,40%');
     add(`Acconto ${tipo} — II rata`, 'Acconti', d(anno,11,30));
   }
 
-  // ─── Ritenute mensili ────────────────────────────────────────────────────
   if (soggettoRitenute || nDip > 0) {
     for (let m = 1; m <= 12; m++) {
       const ms = m === 12 ? 1 : m + 1;
@@ -80,19 +122,17 @@ function generateChecklist(cliente, anno) {
     }
   }
 
-  // ─── Dipendenti ──────────────────────────────────────────────────────────
   if (nDip > 0) {
     add('CU — Certificazione Unica (trasmissione AE)', 'Dipendenti', d(anno,3,31), `${nDip} dipendente/i — anno ${anno-1}`);
     add('Modello 770', 'Dipendenti', d(anno,10,31), `Anno d'imposta ${anno-1}`);
   }
 
-  // ─── Societario ──────────────────────────────────────────────────────────
   if (isSC) {
     add('Approvazione bilancio — assemblea soci', 'Societario', d(anno,4,30), 'Entro 120 gg dalla chiusura esercizio');
-    add('Deposito bilancio CCIAA', 'Societario', d(anno,5,30), 'Entro 30 gg dall\'approvazione');
+    add('Deposito bilancio CCIAA', 'Societario', d(anno,5,30), "Entro 30 gg dall'approvazione");
   }
 
   return adempimenti.sort((a,b) => a.scadenza.localeCompare(b.scadenza));
 }
 
-module.exports = { generateChecklist };
+module.exports = { generateChecklist, generateAdempimentiAnno };

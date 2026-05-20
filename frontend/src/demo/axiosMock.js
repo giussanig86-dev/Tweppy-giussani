@@ -11,6 +11,7 @@ if (import.meta.env.VITE_DEMO_MODE === 'true') {
   let clienti = [...m.CLIENTI];
   let tasks = [...m.TASKS];
   let checklist = [...m.CHECKLIST];
+  let adempimenti = [...m.ADEMPIMENTI];
   let attivita = [...m.ATTIVITA];
   let emailTemplates = [...m.EMAIL_TEMPLATES];
   let workflows = [...m.WORKFLOW_TEMPLATES];
@@ -44,20 +45,45 @@ if (import.meta.env.VITE_DEMO_MODE === 'true') {
 
     // ── checklist ──────────────────────────────────────────────────────────
     if (url.startsWith('/api/checklist')) {
-      const id = url.split('/')[3];
-      if (m2 === 'get') {
-        const params = new URLSearchParams(url.split('?')[1] || '');
-        let r = [...checklist];
-        if (params.get('clienteId')) r = r.filter(c => c.clienteId === params.get('clienteId'));
-        if (params.get('anno')) r = r.filter(c => String(c.anno) === params.get('anno'));
-        return ok(r);
+      const parts = url.split('?')[0].split('/').filter(Boolean); // ['api','checklist',...]
+      const seg3 = parts[2]; // primo segmento dopo 'checklist'
+      const seg4 = parts[3]; // secondo segmento
+
+      // GET /api/checklist/anno/:anno
+      if (m2 === 'get' && seg3 === 'anno') {
+        const anno = parseInt(seg4);
+        return ok(adempimenti.filter(a => a.anno === anno).sort((a,b) => (a.scadenza||'').localeCompare(b.scadenza||'')));
       }
-      if (m2 === 'post' && url.includes('/genera')) {
-        const items = m.CHECKLIST.map(c => ({ ...c, id: uuid(), stato: 'aperto' }));
-        checklist = [...checklist.filter(c => c.clienteId !== body?.clienteId), ...items];
-        return ok({ generati: items.length });
+      // GET /api/checklist/:clienteId/:anno
+      if (m2 === 'get' && seg3 && seg4) {
+        return ok(checklist.filter(c => c.clienteId === seg3 && String(c.anno) === seg4));
       }
-      if (m2 === 'put') { checklist = checklist.map(c => c.id === id ? { ...c, ...body } : c); return ok({ success: true }); }
+      // POST /api/checklist/genera-anno
+      if (m2 === 'post' && seg3 === 'genera-anno') {
+        const anno = parseInt(body?.anno || new Date().getFullYear());
+        const generated = m.ADEMPIMENTI.filter(a => a.anno === anno).map(a => ({ ...a, id: uuid(), stato: 'da_fare' }));
+        adempimenti = [...adempimenti.filter(a => a.anno !== anno), ...generated];
+        return ok(generated.sort((a,b) => (a.scadenza||'').localeCompare(b.scadenza||'')));
+      }
+      // POST /api/checklist/genera
+      if (m2 === 'post' && seg3 === 'genera') {
+        const anno = parseInt(body?.anno || new Date().getFullYear());
+        const template = m.CHECKLIST.map(c => ({ ...c, id: uuid(), clienteId: body?.cliente?.id || c.clienteId, anno, stato: 'da_fare' }));
+        checklist = [...checklist.filter(c => c.clienteId !== body?.cliente?.id || c.anno !== anno), ...template];
+        return ok(template);
+      }
+      // POST /api/checklist (nuovo adempimento singolo)
+      if (m2 === 'post' && !seg3) {
+        const n = { id: uuid(), stato: 'da_fare', anno: parseInt(body.anno), clienteId: '', clienteNome: '', ...body };
+        adempimenti.push(n);
+        return ok(n, 201);
+      }
+      // PUT /api/checklist/:id
+      if (m2 === 'put' && seg3) {
+        adempimenti = adempimenti.map(a => a.id === seg3 ? { ...a, ...body } : a);
+        checklist = checklist.map(c => c.id === seg3 ? { ...c, ...body } : c);
+        return ok({ success: true });
+      }
     }
 
     // ── documenti ──────────────────────────────────────────────────────────

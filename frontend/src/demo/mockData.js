@@ -16,11 +16,38 @@ export const TASKS = [
 ];
 
 export const CHECKLIST = [
-  { id: 'ch1', clienteId: 'c1', clienteNome: 'Rossi Mario', anno: 2025, categoria: 'Dichiarazioni', descrizione: 'Modello 730', scadenza: '2025-09-30', stato: 'aperto' },
-  { id: 'ch2', clienteId: 'c1', clienteNome: 'Rossi Mario', anno: 2025, categoria: 'IVA', descrizione: 'Liquidazione IVA Q1', scadenza: '2025-05-16', stato: 'completato' },
-  { id: 'ch3', clienteId: 'c1', clienteNome: 'Rossi Mario', anno: 2025, categoria: 'ISA', descrizione: 'Indici Sintetici Affidabilità', scadenza: '2025-07-31', stato: 'aperto' },
-  { id: 'ch4', clienteId: 'c2', clienteNome: 'Bianchi SRL', anno: 2025, categoria: 'Societario', descrizione: 'Deposito bilancio CCIAA', scadenza: '2025-07-31', stato: 'aperto' },
-  { id: 'ch5', clienteId: 'c2', clienteNome: 'Bianchi SRL', anno: 2025, categoria: 'Paghe', descrizione: 'F24 ritenute giugno', scadenza: '2025-07-16', stato: 'aperto' },
+  { id: 'ch1', clienteId: 'c1', clienteNome: 'Rossi Mario', anno: 2025, categoria: 'Dichiarazioni', adempimento: 'Modello 730', scadenza: '2025-09-30', stato: 'da_fare' },
+  { id: 'ch2', clienteId: 'c1', clienteNome: 'Rossi Mario', anno: 2025, categoria: 'IVA', adempimento: 'Liquidazione IVA Q1', scadenza: '2025-05-16', stato: 'completato' },
+  { id: 'ch3', clienteId: 'c1', clienteNome: 'Rossi Mario', anno: 2025, categoria: 'Dichiarazioni', adempimento: 'Compilazione ISA', scadenza: '2025-07-31', stato: 'da_fare' },
+  { id: 'ch4', clienteId: 'c2', clienteNome: 'Bianchi SRL', anno: 2025, categoria: 'Societario', adempimento: 'Deposito bilancio CCIAA', scadenza: '2025-07-31', stato: 'da_fare' },
+  { id: 'ch5', clienteId: 'c2', clienteNome: 'Bianchi SRL', anno: 2025, categoria: 'Ritenute', adempimento: 'F24 Ritenute — Giugno', scadenza: '2025-07-16', stato: 'da_fare' },
+];
+
+export const ADEMPIMENTI = [
+  { id: 'ad1',  adempimento: 'Liquidazione IVA mensile — Gennaio',            categoria: 'IVA',           scadenza: '2026-02-16', note: 'Contribuenti IVA mensili',              stato: 'completato', anno: 2026 },
+  { id: 'ad2',  adempimento: 'Certificazione Unica (CU) — trasmissione AE',   categoria: 'Dipendenti',    scadenza: '2026-03-31', note: "Anno d'imposta 2025",                   stato: 'completato', anno: 2026 },
+  { id: 'ad3',  adempimento: 'Liquidazione IVA mensile — Febbraio',           categoria: 'IVA',           scadenza: '2026-03-16', note: 'Contribuenti IVA mensili',              stato: 'completato', anno: 2026 },
+  { id: 'ad4',  adempimento: 'Liquidazione IVA mensile — Marzo',              categoria: 'IVA',           scadenza: '2026-04-16', note: 'Contribuenti IVA mensili',              stato: 'completato', anno: 2026 },
+  { id: 'ad5',  adempimento: 'Dichiarazione IVA annuale',                     categoria: 'IVA',           scadenza: '2026-04-30', note: "Anno d'imposta 2025",                   stato: 'completato', anno: 2026 },
+  { id: 'ad6',  adempimento: 'Approvazione bilancio — assemblea soci',        categoria: 'Societario',    scadenza: '2026-04-30', note: 'Entro 120 gg dalla chiusura esercizio', stato: 'in_lavorazione', anno: 2026 },
+  { id: 'ad7',  adempimento: 'Liquidazione IVA mensile — Aprile',             categoria: 'IVA',           scadenza: '2026-05-16', note: 'Contribuenti IVA mensili',              stato: 'completato', anno: 2026 },
+  { id: 'ad8',  adempimento: 'F24 Ritenute — Aprile',                        categoria: 'Ritenute',      scadenza: '2026-05-16', note: "Sostituti d'imposta",                   stato: 'completato', anno: 2026 },
+  { id: 'ad9',  adempimento: 'Deposito bilancio CCIAA',                       categoria: 'Societario',    scadenza: '2026-05-30', note: "Entro 30 gg dall'approvazione",         stato: 'da_fare',    anno: 2026 },
+  { id: 'ad10', adempimento: 'Liquidazione IVA — I trim. (gen-mar)',          categoria: 'IVA',           scadenza: '2026-05-30', note: 'Con maggiorazione 1%',                  stato: 'da_fare',    anno: 2026 },
+  { id: 'ad11', adempimento: 'Liquidazione IVA mensile — Maggio',             categoria: 'IVA',           scadenza: '2026-06-16', note: 'Contribuenti IVA mensili',              stato: 'da_fare',    anno: 2026 },
+  { id: 'ad12', adempimento: 'F24 Ritenute — Maggio',                        categoria: 'Ritenute',      scadenza: '2026-06-16', note: "Sostituti d'imposta",                   stato: 'da_fare',    anno: 2026 },
+  { id: 'ad13', adempimento: 'Acconto imposte — I rata',                      categoria: 'Acconti',       scadenza: '2026-06-30', note: 'Proroga 30 luglio con +0,40%',          stato: 'da_fare',    anno: 2026 },
+  { id: 'ad14', adempimento: 'Liquidazione IVA mensile — Giugno',             categoria: 'IVA',           scadenza: '2026-07-16', note: 'Contribuenti IVA mensili',              stato: 'da_fare',    anno: 2026 },
+  { id: 'ad15', adempimento: 'F24 Ritenute — Giugno',                        categoria: 'Ritenute',      scadenza: '2026-07-16', note: "Sostituti d'imposta",                   stato: 'da_fare',    anno: 2026 },
+  { id: 'ad16', adempimento: 'Liquidazione IVA — II trim. (apr-giu)',         categoria: 'IVA',           scadenza: '2026-08-20', note: 'Con maggiorazione 1%',                  stato: 'da_fare',    anno: 2026 },
+  { id: 'ad17', adempimento: 'Modello 730',                                   categoria: 'Dichiarazioni', scadenza: '2026-09-30', note: "Anno d'imposta 2025",                   stato: 'da_fare',    anno: 2026 },
+  { id: 'ad18', adempimento: 'Redditi PF / SP',                               categoria: 'Dichiarazioni', scadenza: '2026-09-30', note: "Anno d'imposta 2025",                   stato: 'da_fare',    anno: 2026 },
+  { id: 'ad19', adempimento: 'Dichiarazione IRAP',                            categoria: 'Dichiarazioni', scadenza: '2026-09-30', note: "Anno d'imposta 2025",                   stato: 'da_fare',    anno: 2026 },
+  { id: 'ad20', adempimento: 'Compilazione ISA',                              categoria: 'Dichiarazioni', scadenza: '2026-09-30', note: 'Soggetti ISA',                          stato: 'da_fare',    anno: 2026 },
+  { id: 'ad21', adempimento: 'Modello 770',                                   categoria: 'Dipendenti',    scadenza: '2026-10-31', note: "Anno d'imposta 2025",                   stato: 'da_fare',    anno: 2026 },
+  { id: 'ad22', adempimento: 'Acconto imposte — II rata',                     categoria: 'Acconti',       scadenza: '2026-11-30', note: '',                                      stato: 'da_fare',    anno: 2026 },
+  { id: 'ad23', adempimento: 'Redditi SC — IRES',                             categoria: 'Dichiarazioni', scadenza: '2026-11-30', note: "Anno d'imposta 2025 — esercizio solare", stato: 'da_fare',   anno: 2026 },
+  { id: 'ad24', adempimento: 'Liquidazione IVA — III trim. (lug-set)',        categoria: 'IVA',           scadenza: '2026-11-16', note: '',                                      stato: 'da_fare',    anno: 2026 },
 ];
 
 export const ATTIVITA = [
