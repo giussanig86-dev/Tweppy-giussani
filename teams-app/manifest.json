@@ -1,0 +1,63 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/teams/v1.17/MicrosoftTeams.schema.json",
+  "manifestVersion": "1.17",
+  "version": "1.0.0",
+  "id": "<AZURE_CLIENT_ID>",
+  "name": {
+    "short": "Tweppy",
+    "full": "Tweppy — Studio Giussani"
+  },
+  "description": {
+    "short": "Gestione studio professionale",
+    "full": "CRM e gestione attività per studio professionale: task, comunicazioni, scadenze, documenti e parcellazione."
+  },
+  "developer": {
+    "name": "Studio Giussani",
+    "websiteUrl": "https://<DOMINIO>.azurestaticapps.net",
+    "privacyUrl": "https://<DOMINIO>.azurestaticapps.net",
+    "termsOfUseUrl": "https://<DOMINIO>.azurestaticapps.net"
+  },
+  "icons": {
+    "color": "color.png",
+    "outline": "outline.png"
+  },
+  "accentColor": "#FFFFFF",
+  "staticTabs": [
+    {
+      "entityId": "home",
+      "name": "Home",
+      "contentUrl": "https://<DOMINIO>.azurestaticapps.net",
+      "websiteUrl": "https://<DOMINIO>.azurestaticapps.net",
+      "scopes": ["personal"]
+    },
+    {
+      "entityId": "tasks",
+      "name": "Task",
+      "contentUrl": "https://<DOMINIO>.azurestaticapps.net/tasks",
+      "websiteUrl": "https://<DOMINIO>.azurestaticapps.net/tasks",
+      "scopes": ["personal"]
+    },
+    {
+      "entityId": "comunicazioni",
+      "name": "Comunicazioni",
+      "contentUrl": "https://<DOMINIO>.azurestaticapps.net/comunicazioni",
+      "websiteUrl": "https://<DOMINIO>.azurestaticapps.net/comunicazioni",
+      "scopes": ["personal"]
+    },
+    {
+      "entityId": "checklist",
+      "name": "Scadenze",
+      "contentUrl": "https://<DOMINIO>.azurestaticapps.net/checklist",
+      "websiteUrl": "https://<DOMINIO>.azurestaticapps.net/checklist",
+      "scopes": ["personal"]
+    }
+  ],
+  "webApplicationInfo": {
+    "id": "<AZURE_CLIENT_ID>",
+    "resource": "api://<DOMINIO>.azurestaticapps.net/<AZURE_CLIENT_ID>"
+  },
+  "permissions": ["identity", "messageTeamMembers"],
+  "validDomains": [
+    "<DOMINIO>.azurestaticapps.net"
+  ]
+}

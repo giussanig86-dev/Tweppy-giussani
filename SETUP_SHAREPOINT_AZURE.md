@@ -327,3 +327,65 @@ VITE_DEMO_MODE=false
 - [ ] Azure Container App creata e immagine backend deployata
 - [ ] URI di reindirizzamento aggiunto nella registrazione app Azure AD
 - [ ] API Key Anthropic configurata
+
+---
+
+## 8. Microsoft Teams — Integrazione app
+
+### 8.1 Configurare Azure AD per Teams SSO
+
+1. Nella registrazione app → **Esporre un'API**
+2. Impostare **URI ID applicazione**: `api://<DOMINIO>.azurestaticapps.net/<AZURE_CLIENT_ID>`
+3. Aggiungere un **ambito (scope)**:
+   - Nome: `access_as_user`
+   - Consenso: Amministratori e utenti
+   - Nome visualizzato: `Accedi come utente`
+4. In **Applicazioni client autorizzate**, aggiungere i seguenti ID (client Teams ufficiali):
+
+| Applicazione | Client ID |
+|---|---|
+| Teams web | `1fec8e78-bce4-4aaf-ab1b-5451cc387264` |
+| Teams desktop/mobile | `5e3ce6c0-2b1f-4285-8d4b-75ee78787346` |
+| Teams iOS | `d3590ed6-52b3-4102-aeff-aad2292ab01c` |
+| Teams Android | `cf53fce8-def6-4aeb-8d30-b158e7b1cf83` |
+
+   Per ognuno: selezionare lo scope `access_as_user` creato al punto 3.
+
+### 8.2 Creare le icone
+
+Creare due immagini PNG e salvarle in `teams-app/`:
+
+| File | Dimensioni | Descrizione |
+|---|---|---|
+| `color.png` | 192 × 192 px | Icona a colori su sfondo trasparente o colorato |
+| `outline.png` | 32 × 32 px | Icona outline bianca su sfondo trasparente |
+
+### 8.3 Compilare il manifest
+
+Aprire `teams-app/manifest.json` e sostituire tutti i placeholder:
+
+| Placeholder | Valore |
+|---|---|
+| `<AZURE_CLIENT_ID>` | ID applicazione Azure AD |
+| `<DOMINIO>` | Dominio Static Web App (es. `xyz.azurestaticapps.net`) |
+
+### 8.4 Pacchettizzare e caricare l'app in Teams
+
+```bash
+cd teams-app
+zip -j tweppy-teams.zip manifest.json color.png outline.png
+```
+
+1. Aprire Microsoft Teams → **App** → **Gestisci le tue app** → **Carica un'app**
+2. Selezionare `tweppy-teams.zip`
+3. Oppure caricarla nell'**App Catalog aziendale** per renderla disponibile a tutto il tenant: Teams Admin Center → **App di Teams** → **Gestisci app** → **Carica**
+
+### Checklist Teams
+
+- [ ] URI ID applicazione `api://...` configurato in Azure AD
+- [ ] Scope `access_as_user` creato
+- [ ] Client Teams autorizzati aggiunti (4 voci)
+- [ ] `color.png` (192×192) creata e salvata in `teams-app/`
+- [ ] `outline.png` (32×32) creata e salvata in `teams-app/`
+- [ ] Placeholder in `manifest.json` sostituiti
+- [ ] App pacchettizzata in `.zip` e caricata in Teams
