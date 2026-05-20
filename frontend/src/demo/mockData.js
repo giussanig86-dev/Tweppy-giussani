@@ -16,11 +16,31 @@ export const TASKS = [
 ];
 
 export const CHECKLIST = [
+  // ── 2025 ────────────────────────────────────────────────────────────────────
   { id: 'ch1', clienteId: 'c1', clienteNome: 'Rossi Mario', anno: 2025, categoria: 'Dichiarazioni', adempimento: 'Modello 730', scadenza: '2025-09-30', stato: 'da_fare' },
   { id: 'ch2', clienteId: 'c1', clienteNome: 'Rossi Mario', anno: 2025, categoria: 'IVA', adempimento: 'Liquidazione IVA Q1', scadenza: '2025-05-16', stato: 'completato' },
   { id: 'ch3', clienteId: 'c1', clienteNome: 'Rossi Mario', anno: 2025, categoria: 'Dichiarazioni', adempimento: 'Compilazione ISA', scadenza: '2025-07-31', stato: 'da_fare' },
   { id: 'ch4', clienteId: 'c2', clienteNome: 'Bianchi SRL', anno: 2025, categoria: 'Societario', adempimento: 'Deposito bilancio CCIAA', scadenza: '2025-07-31', stato: 'da_fare' },
   { id: 'ch5', clienteId: 'c2', clienteNome: 'Bianchi SRL', anno: 2025, categoria: 'Ritenute', adempimento: 'F24 Ritenute — Giugno', scadenza: '2025-07-16', stato: 'da_fare' },
+  // ── 2026 ────────────────────────────────────────────────────────────────────
+  { id: 'ch10', clienteId: 'c1', clienteNome: 'Rossi Mario', anno: 2026, categoria: 'IVA', adempimento: 'Liquidazione IVA — I trim.', scadenza: '2026-05-30', stato: 'completato' },
+  { id: 'ch11', clienteId: 'c1', clienteNome: 'Rossi Mario', anno: 2026, categoria: 'IVA', adempimento: 'Liquidazione IVA mensile — Maggio', scadenza: '2026-06-16', stato: 'da_fare' },
+  { id: 'ch12', clienteId: 'c1', clienteNome: 'Rossi Mario', anno: 2026, categoria: 'Dichiarazioni', adempimento: 'Modello 730', scadenza: '2026-09-30', stato: 'da_fare' },
+  { id: 'ch13', clienteId: 'c1', clienteNome: 'Rossi Mario', anno: 2026, categoria: 'Acconti', adempimento: 'Acconto imposte — I rata', scadenza: '2026-06-30', stato: 'da_fare' },
+  { id: 'ch20', clienteId: 'c2', clienteNome: 'Bianchi SRL', anno: 2026, categoria: 'Societario', adempimento: 'Approvazione bilancio — assemblea soci', scadenza: '2026-04-30', stato: 'completato' },
+  { id: 'ch21', clienteId: 'c2', clienteNome: 'Bianchi SRL', anno: 2026, categoria: 'Societario', adempimento: 'Deposito bilancio CCIAA', scadenza: '2026-05-30', stato: 'in_lavorazione' },
+  { id: 'ch22', clienteId: 'c2', clienteNome: 'Bianchi SRL', anno: 2026, categoria: 'Ritenute', adempimento: 'F24 Ritenute — Aprile', scadenza: '2026-05-16', stato: 'completato' },
+  { id: 'ch23', clienteId: 'c2', clienteNome: 'Bianchi SRL', anno: 2026, categoria: 'Ritenute', adempimento: 'F24 Ritenute — Maggio', scadenza: '2026-06-16', stato: 'da_fare' },
+  { id: 'ch24', clienteId: 'c2', clienteNome: 'Bianchi SRL', anno: 2026, categoria: 'Dipendenti', adempimento: 'Busta paga — Maggio', scadenza: '2026-05-31', stato: 'completato' },
+  { id: 'ch25', clienteId: 'c2', clienteNome: 'Bianchi SRL', anno: 2026, categoria: 'Dipendenti', adempimento: 'Busta paga — Giugno', scadenza: '2026-06-30', stato: 'da_fare' },
+  { id: 'ch26', clienteId: 'c2', clienteNome: 'Bianchi SRL', anno: 2026, categoria: 'IVA', adempimento: 'Liquidazione IVA mensile — Maggio', scadenza: '2026-06-16', stato: 'da_fare' },
+  { id: 'ch30', clienteId: 'c3', clienteNome: 'Verdi Anna (Forfettario)', anno: 2026, categoria: 'Dichiarazioni', adempimento: 'Redditi PF — forfettario', scadenza: '2026-09-30', stato: 'da_fare' },
+  { id: 'ch31', clienteId: 'c3', clienteNome: 'Verdi Anna (Forfettario)', anno: 2026, categoria: 'Acconti', adempimento: 'Acconto imposte — I rata', scadenza: '2026-06-30', stato: 'da_fare' },
+  { id: 'ch40', clienteId: 'c4', clienteNome: 'Studio Tecnico Neri', anno: 2026, categoria: 'IVA', adempimento: 'Liquidazione IVA — I trim.', scadenza: '2026-05-30', stato: 'completato' },
+  { id: 'ch41', clienteId: 'c4', clienteNome: 'Studio Tecnico Neri', anno: 2026, categoria: 'Ritenute', adempimento: 'F24 Ritenute — Aprile', scadenza: '2026-05-16', stato: 'completato' },
+  { id: 'ch42', clienteId: 'c4', clienteNome: 'Studio Tecnico Neri', anno: 2026, categoria: 'Ritenute', adempimento: 'F24 Ritenute — Maggio', scadenza: '2026-06-16', stato: 'da_fare' },
+  { id: 'ch43', clienteId: 'c4', clienteNome: 'Studio Tecnico Neri', anno: 2026, categoria: 'Dipendenti', adempimento: 'Busta paga — Maggio', scadenza: '2026-05-31', stato: 'in_lavorazione' },
+  { id: 'ch44', clienteId: 'c4', clienteNome: 'Studio Tecnico Neri', anno: 2026, categoria: 'Dichiarazioni', adempimento: 'Redditi SP', scadenza: '2026-09-30', stato: 'da_fare' },
 ];
 
 export const ADEMPIMENTI = [

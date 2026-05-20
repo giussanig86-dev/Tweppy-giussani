@@ -36,7 +36,13 @@ if (import.meta.env.VITE_DEMO_MODE === 'true') {
 
     // ── tasks ──────────────────────────────────────────────────────────────
     if (url.startsWith('/api/tasks')) {
-      const id = url.split('/')[3];
+      const parts = url.split('?')[0].split('/').filter(Boolean);
+      const id = parts[2];
+      const sub = parts[3]; // 'messaggi' or undefined
+      if (sub === 'messaggi') {
+        if (m2 === 'get') return ok([]);
+        if (m2 === 'post') return ok({ id: uuid(), taskId: id, ...body, createdAt: new Date().toISOString() }, 201);
+      }
       if (m2 === 'get') return ok(tasks);
       if (m2 === 'post') { const n = { id: uuid(), stato: 'da_fare', ...body }; tasks.push(n); return ok(n, 201); }
       if (m2 === 'put') { tasks = tasks.map(t => t.id === id ? { ...t, ...body } : t); return ok({ success: true }); }
@@ -53,6 +59,15 @@ if (import.meta.env.VITE_DEMO_MODE === 'true') {
       if (m2 === 'get' && seg3 === 'anno') {
         const anno = parseInt(seg4);
         return ok(adempimenti.filter(a => a.anno === anno).sort((a,b) => (a.scadenza||'').localeCompare(b.scadenza||'')));
+      }
+      // GET /api/checklist/matrice/:anno
+      if (m2 === 'get' && seg3 === 'matrice') {
+        const anno = parseInt(seg4);
+        const params = new URLSearchParams(url.split('?')[1] || '');
+        const mese = params.get('mese');
+        let r = checklist.filter(c => c.clienteId && c.clienteId.trim() !== '' && c.anno === anno);
+        if (mese) r = r.filter(c => c.scadenza?.startsWith(`${anno}-${mese}`));
+        return ok(r);
       }
       // GET /api/checklist/:clienteId/:anno
       if (m2 === 'get' && seg3 && seg4) {
@@ -138,6 +153,10 @@ if (import.meta.env.VITE_DEMO_MODE === 'true') {
         return new Blob([arr], { type });
       }
 
+      if (url.match(/\/note\/[^/?]+/)) {
+        if (m2 === 'get') return ok([]);
+        if (m2 === 'post') return ok({ id: uuid(), ...body, createdAt: new Date().toISOString() }, 201);
+      }
       if (url.includes('/caselle')) return ok(['me', 'info@studiogds.it']);
       if (url.includes('/scansiona')) return ok({ elaborati: 0, dettaglio: [] });
       if (url.includes('/task-da-mail')) {
