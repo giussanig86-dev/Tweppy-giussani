@@ -103,17 +103,17 @@ export default function VistaScadenzario() {
     });
   }
 
-  function exportCSV() {
-    const rows = [['Data', 'Giorno', 'Cliente', 'Adempimento', 'Stato']];
-    date.forEach(giorno => {
-      perGiorno[giorno].forEach(item => {
-        rows.push([
-          giorno,
-          formatGiorno(giorno),
-          item.clienteNome || item.clienteId,
-          item.adempimento,
-          STATO_LABEL[item.stato] || item.stato,
-        ]);
+  function exportCSVGiorno(giorno, dayItems) {
+    const rows = [['Cliente', 'Adempimento', 'Stato']];
+    const clientiSorted = [...new Map(dayItems.map(i => [i.clienteId, i.clienteNome])).entries()]
+      .sort((a, b) => (a[1] || '').localeCompare(b[1] || ''));
+    const adempimenti = [...new Set(dayItems.map(i => i.adempimento))].sort();
+    clientiSorted.forEach(([cId, cNome]) => {
+      adempimenti.forEach(a => {
+        const item = dayItems.find(i => i.clienteId === cId && i.adempimento === a);
+        if (item) {
+          rows.push([cNome || cId, a, STATO_LABEL[item.stato] || item.stato]);
+        }
       });
     });
     const csv = rows.map(r =>
@@ -122,8 +122,7 @@ export default function VistaScadenzario() {
     const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
-    const meseNome = MESI.find(m => m.v === mese)?.l || 'tutti';
-    link.download = `scadenzario_${anno}_${meseNome}.csv`;
+    link.download = `scadenzario_${giorno}.csv`;
     link.click();
     URL.revokeObjectURL(link.href);
   }
@@ -162,10 +161,6 @@ export default function VistaScadenzario() {
         {items.length > 0 && (
           <>
             <div className="flex-1" />
-            <button onClick={exportCSV}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 transition text-gray-700">
-              ⬇ Excel (CSV)
-            </button>
             <button onClick={() => window.print()}
               className="flex items-center gap-1.5 px-3 py-1.5 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 transition text-gray-700">
               🖨 Stampa
@@ -221,6 +216,14 @@ export default function VistaScadenzario() {
                     {fatti > 0 && <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-medium">{fatti} fatti</span>}
                     {comunicati > 0 && <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-medium">{comunicati} comunicati</span>}
                   </div>
+                  {/* Export CSV giorno */}
+                  <button
+                    onClick={() => exportCSVGiorno(giorno, dayItems)}
+                    title="Scarica Excel per questa data"
+                    className="print:hidden flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium border border-gray-300 bg-white text-gray-500 hover:bg-gray-50 transition"
+                  >
+                    ⬇ Excel
+                  </button>
                   {/* Lock toggle */}
                   <button
                     onClick={() => toggleDay(giorno)}
