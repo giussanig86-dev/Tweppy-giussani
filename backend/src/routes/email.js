@@ -37,6 +37,30 @@ router.get('/messaggio/:messageId', async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
+// Allegati di un messaggio (con contenuto inline per immagini < 1MB)
+router.get('/allegati/:messageId', async (req, res) => {
+  try {
+    const mailbox = req.query.mailbox || 'me';
+    const fullMsg = await getMessageWithAttachments(req.graphToken, req.params.messageId, mailbox);
+    const allegati = (fullMsg.attachments || [])
+      .filter(a => a['@odata.type'] === '#microsoft.graph.fileAttachment')
+      .map(a => {
+        const isImage = a.contentType?.startsWith('image/');
+        const sizeOk = (a.size || 0) < 1024 * 1024; // < 1MB
+        return {
+          name: a.name,
+          contentType: a.contentType,
+          size: a.size,
+          // Inline solo per immagini piccole
+          contentBytes: (isImage && sizeOk) ? a.contentBytes : null,
+          // Per tutti gli altri: base64 per download client-side
+          downloadBytes: (!isImage && sizeOk) ? a.contentBytes : null,
+        };
+      });
+    res.json(allegati);
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
 // Rispondi a un messaggio
 router.post('/rispondi/:messageId', async (req, res) => {
   try {

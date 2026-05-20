@@ -16,4 +16,6 @@ export const emailApi = {
     axios.post(`${BASE}/rispondi/${messageId}`, { testo, mailbox }, { headers: h(token) }).then(r => r.data),
   taskDaMail: (token, data) =>
     axios.post(`${BASE}/task-da-mail`, data, { headers: h(token) }).then(r => r.data),
+  allegati: (token, messageId, mailbox) =>
+    axios.get(`${BASE}/allegati/${messageId}`, { params: { mailbox }, headers: h(token) }).then(r => r.data),
 };

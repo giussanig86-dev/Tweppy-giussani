@@ -17,6 +17,112 @@ function StatioBadge({ stato }) {
   return <span className={`text-xs px-1.5 py-0.5 rounded ${cls}`}>{stato}</span>;
 }
 
+const FILE_ICONS = {
+  'application/pdf': { icon: '📄', color: 'text-red-600', bg: 'bg-red-50' },
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document': { icon: '📝', color: 'text-blue-600', bg: 'bg-blue-50' },
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': { icon: '📊', color: 'text-green-600', bg: 'bg-green-50' },
+  'application/vnd.ms-excel': { icon: '📊', color: 'text-green-600', bg: 'bg-green-50' },
+  'application/zip': { icon: '📦', color: 'text-yellow-600', bg: 'bg-yellow-50' },
+};
+
+function formatBytes(n) {
+  if (!n) return '';
+  if (n < 1024) return `${n} B`;
+  if (n < 1024 * 1024) return `${(n / 1024).toFixed(0)} KB`;
+  return `${(n / 1024 / 1024).toFixed(1)} MB`;
+}
+
+function AllegatiPreview({ allegati }) {
+  const [lightbox, setLightbox] = useState(null);
+
+  function download(att) {
+    const bytes = att.downloadBytes || att.contentBytes;
+    if (!bytes) return;
+    const blob = b64toBlob(bytes, att.contentType);
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = att.name; a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  function b64toBlob(b64, type) {
+    const bin = atob(b64);
+    const arr = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
+    return new Blob([arr], { type });
+  }
+
+  if (!allegati?.length) return null;
+
+  return (
+    <>
+      <div className="mt-2 pt-2 border-t flex flex-wrap gap-2">
+        {allegati.map((att, i) => {
+          const isImg = att.contentType?.startsWith('image/');
+          const cfg = FILE_ICONS[att.contentType] || { icon: '📎', color: 'text-gray-500', bg: 'bg-gray-50' };
+
+          if (isImg && att.contentBytes) {
+            return (
+              <button key={i} onClick={() => setLightbox(att)}
+                className="relative rounded-lg overflow-hidden border border-gray-200 hover:shadow-md transition-shadow">
+                <img
+                  src={`data:${att.contentType};base64,${att.contentBytes}`}
+                  alt={att.name}
+                  className="w-24 h-20 object-cover"
+                />
+                <div className="absolute bottom-0 left-0 right-0 bg-black/40 text-white text-[10px] px-1 py-0.5 truncate">
+                  {att.name}
+                </div>
+              </button>
+            );
+          }
+
+          return (
+            <button key={i} onClick={() => download(att)}
+              className={`flex items-center gap-2 px-3 py-2 rounded-lg border border-gray-200 ${cfg.bg} hover:shadow-sm transition-shadow text-left`}>
+              <span className="text-lg">{cfg.icon}</span>
+              <div>
+                <p className={`text-xs font-medium ${cfg.color} truncate max-w-[120px]`}>{att.name}</p>
+                <p className="text-[10px] text-gray-400">{formatBytes(att.size)}</p>
+              </div>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Lightbox immagine */}
+      {lightbox && (
+        <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4"
+          onClick={() => setLightbox(null)}>
+          <div className="relative max-w-3xl max-h-full" onClick={e => e.stopPropagation()}>
+            <img
+              src={`data:${lightbox.contentType};base64,${lightbox.contentBytes}`}
+              alt={lightbox.name}
+              className="max-w-full max-h-[80vh] rounded-lg shadow-2xl object-contain"
+            />
+            <div className="flex items-center justify-between mt-2">
+              <p className="text-white text-sm">{lightbox.name}</p>
+              <div className="flex gap-2">
+                <button onClick={() => {
+                  const a = document.createElement('a');
+                  a.href = `data:${lightbox.contentType};base64,${lightbox.contentBytes}`;
+                  a.download = lightbox.name; a.click();
+                }} className="text-white text-xs bg-white/20 hover:bg-white/30 px-3 py-1 rounded-lg transition">
+                  ⬇ Scarica
+                </button>
+                <button onClick={() => setLightbox(null)}
+                  className="text-white text-xs bg-white/20 hover:bg-white/30 px-3 py-1 rounded-lg transition">
+                  ✕ Chiudi
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
 export default function ComunicazioniPage() {
   const { getToken } = useAuth();
   const [clienti, setClienti] = useState([]);
@@ -31,6 +137,7 @@ export default function ComunicazioniPage() {
   // Chat state
   const [expandedId, setExpandedId] = useState(null);
   const [corpi, setCorpi] = useState({});        // messageId → body html
+  const [allegatiMap, setAllegatiMap] = useState({});  // messageId → allegati[]
   const [loadingMsg, setLoadingMsg] = useState(null);
 
   // Reply state
@@ -86,8 +193,12 @@ export default function ComunicazioniPage() {
       setLoadingMsg(item.messageId);
       try {
         const token = await getToken();
-        const msg = await emailApi.getMessage(token, item.messageId, item.casella);
+        const [msg, atts] = await Promise.all([
+          emailApi.getMessage(token, item.messageId, item.casella),
+          emailApi.allegati(token, item.messageId, item.casella).catch(() => []),
+        ]);
         setCorpi(prev => ({ ...prev, [item.messageId]: msg.body?.content || msg.body || '' }));
+        setAllegatiMap(prev => ({ ...prev, [item.messageId]: atts }));
       } catch {} finally { setLoadingMsg(null); }
     }
   }
@@ -269,6 +380,7 @@ export default function ComunicazioniPage() {
                             dangerouslySetInnerHTML={{ __html: corpi[item.messageId] || item.preview }}
                           />
                         )}
+                        <AllegatiPreview allegati={allegatiMap[item.messageId]} />
                         <div className="flex gap-2 mt-2 pt-2 border-t">
                           <button
                             onClick={(e) => { e.stopPropagation(); setReplyTo({ messageId: item.messageId, subject: item.titolo, casella: item.casella }); setReplyText(''); }}

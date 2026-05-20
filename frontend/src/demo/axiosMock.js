@@ -110,6 +110,23 @@ if (import.meta.env.VITE_DEMO_MODE === 'true') {
         tasks.push(n);
         return ok(n, 201);
       }
+      if (url.includes('/allegati/')) return ok([
+        {
+          name: 'CU_2024.pdf',
+          contentType: 'application/pdf',
+          size: 87423,
+          contentBytes: null,
+          downloadBytes: null,
+        },
+        {
+          name: 'Spese_mediche.jpg',
+          contentType: 'image/jpeg',
+          size: 134200,
+          // 1x1 px placeholder image in base64
+          contentBytes: '/9j/4AAQSkZJRgABAQEASABIAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRofHh0aHBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL/2wBDAQkJCQwLDBgNDRgyIRwhMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjL/wAARCAABAAEDASIAAhEBAxEB/8QAFAABAAAAAAAAAAAAAAAAAAAACf/EABQQAQAAAAAAAAAAAAAAAAAAAAD/xAAUAQEAAAAAAAAAAAAAAAAAAAAA/8QAFBEBAAAAAAAAAAAAAAAAAAAAAP/aAAwDAQACEQMRAD8AJQAB/9k=',
+          downloadBytes: null,
+        },
+      ]);
       if (url.includes('/messaggio/')) return ok({
         id: 'msg-demo-1',
         subject: 'Documenti per 730',
