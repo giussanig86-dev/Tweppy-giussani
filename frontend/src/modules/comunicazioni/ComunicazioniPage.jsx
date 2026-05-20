@@ -5,6 +5,7 @@ import { emailApi } from '../../api/email';
 import Modal from '../../components/ui/Modal';
 import Button from '../../components/ui/Button';
 import EmailNote from './EmailNote';
+import ComposeModal from './ComposeModal';
 
 function fmt(d) {
   if (!d) return '';
@@ -151,14 +152,8 @@ export default function ComunicazioniPage() {
   const [allegatiMap, setAllegatiMap] = useState({});
   const [loadingMsg, setLoadingMsg] = useState(null);
 
-  // Reply state
-  const [replyTo, setReplyTo] = useState(null);
-  const [replyText, setReplyText] = useState('');
-  const [casellaMittente, setCasellaMittente] = useState('me');
-  const [sending, setSending] = useState(false);
-  const [replyFiles, setReplyFiles] = useState([]);
-  const [dragOver, setDragOver] = useState(false);
-  const fileInputRef = useRef(null);
+  // Compose modal
+  const [compose, setCompose] = useState(null); // null | { mode, replyTo }
 
   // Task da mail
   const [taskModal, setTaskModal] = useState(null);
@@ -176,14 +171,13 @@ export default function ComunicazioniPage() {
       ]);
       setClienti(cl.filter(c => c.stato !== 'eliminato'));
       setCaselle(ca);
-      setCasellaMittente(ca[0] || 'me');
       setSconosciuti(sc);
     });
   }, []);
 
   async function loadStorico(cliente) {
     if (!cliente) return;
-    setLoading(true); setError(null); setTimeline([]); setExpandedId(null); setReplyTo(null); setSpUrl(null); setReplyFiles([]);
+    setLoading(true); setError(null); setTimeline([]); setExpandedId(null); setCompose(null); setSpUrl(null);
     try {
       const token = await getToken();
       const [data, sp] = await Promise.all([
@@ -223,21 +217,8 @@ export default function ComunicazioniPage() {
     }
   }
 
-  async function handleRispondi() {
-    if (!replyTo || !replyText.trim()) return;
-    setSending(true);
-    try {
-      const token = await getToken();
-      await emailApi.rispondi(token, replyTo.messageId, replyText, casellaMittente, replyFiles);
-      setTimeline(prev => [{
-        tipo: 'email_inviata',
-        data: new Date().toISOString(),
-        titolo: `Re: ${replyTo.subject}`,
-        email: clienteSelezionato?.email || '',
-        casella: casellaMittente,
-      }, ...prev]);
-      setReplyTo(null); setReplyText(''); setReplyFiles([]);
-    } catch (e) { setError(e.message); } finally { setSending(false); }
+  function handleEmailSent(item) {
+    setTimeline(prev => [item, ...prev]);
   }
 
   async function handleSalvaTask() {
@@ -372,14 +353,23 @@ export default function ComunicazioniPage() {
           ) : (
             <p className="text-gray-400">Seleziona un cliente dalla lista</p>
           )}
-          {caselle.length > 1 && (
-            <div className="flex items-center gap-2 text-xs text-gray-500">
-              <span>Caselle:</span>
-              {caselle.map(c => (
-                <span key={c} className="bg-gray-100 px-2 py-0.5 rounded">{c === 'me' ? '(principale)' : c}</span>
-              ))}
-            </div>
-          )}
+          <div className="flex items-center gap-2">
+            {caselle.length > 1 && (
+              <div className="flex items-center gap-1 text-xs text-gray-400">
+                {caselle.map(c => (
+                  <span key={c} className="bg-gray-100 px-2 py-0.5 rounded">{c === 'me' ? '(principale)' : c}</span>
+                ))}
+              </div>
+            )}
+            {clienteSelezionato && (
+              <button
+                onClick={() => setCompose({ mode: 'new' })}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-brand-500 text-white rounded-lg hover:bg-brand-600 transition"
+              >
+                ✉ Nuova Email
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Messaggi */}
@@ -455,7 +445,7 @@ export default function ComunicazioniPage() {
                         <EmailNote messageId={item.messageId} />
                         <div className="flex gap-2 mt-2 pt-2 border-t">
                           <button
-                            onClick={(e) => { e.stopPropagation(); setReplyTo({ messageId: item.messageId, subject: item.titolo, casella: item.casella }); setReplyText(''); setReplyFiles([]); }}
+                            onClick={(e) => { e.stopPropagation(); setCompose({ mode: 'reply', replyTo: { messageId: item.messageId, subject: item.titolo, fromEmail: item.fromEmail || '', bodyPreview: item.preview || '' } }); }}
                             className="text-xs bg-brand-50 text-brand-700 hover:bg-brand-100 px-2 py-1 rounded font-medium transition"
                           >
                             ↩ Rispondi
@@ -485,87 +475,6 @@ export default function ComunicazioniPage() {
           <div ref={bottomRef} />
         </div>
 
-        {/* Reply box */}
-        {clienteSelezionato && (
-          <div className="border-t bg-white px-4 py-3 shrink-0">
-            {replyTo && (
-              <div className="flex items-center justify-between mb-2">
-                <p className="text-xs text-gray-500">
-                  ↩ <span className="font-medium">In risposta a:</span> {replyTo.subject}
-                </p>
-                <button onClick={() => { setReplyTo(null); setReplyFiles([]); }} className="text-gray-400 hover:text-gray-600 text-xs">✕</button>
-              </div>
-            )}
-            <div className="flex gap-3 items-end">
-              <div className="flex-1">
-                <textarea
-                  rows={replyTo ? 3 : 2}
-                  value={replyText}
-                  onChange={e => setReplyText(e.target.value)}
-                  placeholder={replyTo ? 'Scrivi la tua risposta...' : 'Seleziona una email ricevuta e clicca "Rispondi"'}
-                  disabled={!replyTo}
-                  className="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-brand-500 disabled:bg-gray-50 disabled:text-gray-400"
-                />
-                {replyTo && (
-                  <>
-                    <div
-                      onDragOver={e => { e.preventDefault(); setDragOver(true); }}
-                      onDragLeave={() => setDragOver(false)}
-                      onDrop={e => { e.preventDefault(); setDragOver(false); setReplyFiles(prev => [...prev, ...Array.from(e.dataTransfer.files)]); }}
-                      className={`mt-1 border-2 border-dashed rounded-lg px-3 py-1.5 text-xs text-center transition cursor-default ${dragOver ? 'border-brand-400 bg-brand-50 text-brand-600' : 'border-gray-200 text-gray-400'}`}
-                    >
-                      Trascina allegati qui o{' '}
-                      <button type="button" onClick={() => fileInputRef.current?.click()} className="text-brand-600 hover:underline">
-                        sfoglia
-                      </button>
-                      <input
-                        type="file"
-                        multiple
-                        ref={fileInputRef}
-                        className="hidden"
-                        onChange={e => { setReplyFiles(prev => [...prev, ...Array.from(e.target.files)]); e.target.value = ''; }}
-                      />
-                    </div>
-                    {replyFiles.length > 0 && (
-                      <div className="flex flex-wrap gap-1 mt-1">
-                        {replyFiles.map((f, i) => (
-                          <span key={i} className="flex items-center gap-1 text-xs bg-blue-50 text-blue-700 px-2 py-0.5 rounded">
-                            📎 {f.name} ({formatBytes(f.size)})
-                            <button
-                              type="button"
-                              onClick={() => setReplyFiles(prev => prev.filter((_, j) => j !== i))}
-                              className="text-blue-400 hover:text-blue-600 ml-0.5 font-bold leading-none"
-                            >
-                              ×
-                            </button>
-                          </span>
-                        ))}
-                      </div>
-                    )}
-                  </>
-                )}
-              </div>
-              <div className="flex flex-col gap-2 items-end shrink-0">
-                {caselle.length > 1 && replyTo && (
-                  <select
-                    value={casellaMittente}
-                    onChange={e => setCasellaMittente(e.target.value)}
-                    className="border border-gray-300 rounded-lg px-2 py-1.5 text-xs bg-white"
-                  >
-                    {caselle.map(c => <option key={c} value={c}>{c === 'me' ? 'Casella principale' : c}</option>)}
-                  </select>
-                )}
-                <Button
-                  onClick={handleRispondi}
-                  disabled={!replyTo || !replyText.trim() || sending}
-                  size="sm"
-                >
-                  {sending ? 'Invio...' : 'Invia'}
-                </Button>
-              </div>
-            </div>
-          </div>
-        )}
       </div>
 
       {/* Modal Crea Task */}
@@ -647,6 +556,18 @@ export default function ComunicazioniPage() {
           </div>
         )}
       </Modal>
+
+      {compose && (
+        <ComposeModal
+          mode={compose.mode}
+          replyTo={compose.replyTo}
+          defaultTo={clienteSelezionato?.email}
+          caselle={caselle}
+          clienteId={clienteSelezionato?.id}
+          onClose={() => setCompose(null)}
+          onSent={handleEmailSent}
+        />
+      )}
     </div>
   );
 }

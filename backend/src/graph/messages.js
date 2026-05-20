@@ -84,6 +84,30 @@ async function getSentToClient(accessToken, clientEmail, top = 20, mailbox = 'me
   return res.value;
 }
 
+function parseRecipients(str) {
+  return (str || '').split(/[,;]/).map(s => s.trim()).filter(Boolean)
+    .map(addr => ({ emailAddress: { address: addr } }));
+}
+
+async function createDraftMessage(accessToken, { to, subject, body, cc = '', ccn = '' }, mailbox = 'me') {
+  const client = createGraphClient(accessToken);
+  const base = mailboxPath(mailbox);
+  const message = {
+    subject,
+    body: { contentType: 'Text', content: body },
+    toRecipients: parseRecipients(to),
+  };
+  if (cc) message.ccRecipients = parseRecipients(cc);
+  if (ccn) message.bccRecipients = parseRecipients(ccn);
+  return client.api(`${base}/messages`).post(message);
+}
+
+async function updateDraft(accessToken, draftId, patch, mailbox = 'me') {
+  const client = createGraphClient(accessToken);
+  const base = mailboxPath(mailbox);
+  await client.api(`${base}/messages/${draftId}`).patch(patch);
+}
+
 module.exports = {
   getInboxMessages,
   getMessageWithAttachments,
@@ -95,4 +119,6 @@ module.exports = {
   createReplyDraft,
   addAttachmentToDraft,
   sendDraft,
+  createDraftMessage,
+  updateDraft,
 };
