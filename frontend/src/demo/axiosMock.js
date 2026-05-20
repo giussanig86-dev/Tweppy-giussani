@@ -93,6 +93,12 @@ if (import.meta.env.VITE_DEMO_MODE === 'true') {
         adempimenti.push(n);
         return ok(n, 201);
       }
+      // DELETE /api/checklist/cliente/:clienteId
+      if (m2 === 'delete' && seg3 === 'cliente' && seg4) {
+        const prev = checklist.length;
+        checklist = checklist.filter(c => c.clienteId !== seg4);
+        return ok({ eliminati: prev - checklist.length });
+      }
       // PUT /api/checklist/:id
       if (m2 === 'put' && seg3) {
         adempimenti = adempimenti.map(a => a.id === seg3 ? { ...a, ...body } : a);
