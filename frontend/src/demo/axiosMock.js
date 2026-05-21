@@ -162,7 +162,27 @@ if (import.meta.env.VITE_DEMO_MODE === 'true') {
 
     // ── calendario ─────────────────────────────────────────────────────────
     if (url.startsWith('/api/calendario')) {
-      const id = url.split('/')[3];
+      const parts = url.split('?')[0].split('/').filter(Boolean); // ['api','calendario',...]
+      const seg = parts[2]; // 'eventi' | 'chat' | 'riepilogo'
+      const id  = parts[3];
+
+      if (seg === 'chat') {
+        if (m2 === 'get') return ok([
+          { id: 'cm1', eventoId: id, testo: 'Ricordati di portare i bilanci', autore: 'Giorgio Demo', autoreEmail: 'admin@studio.it', destinatario: '', createdAt: new Date(Date.now() - 3600000).toISOString() },
+          { id: 'cm2', eventoId: id, testo: 'Ok, ci penso io', autore: 'Mario Rossi', autoreEmail: 'mario@studio.it', destinatario: 'Giorgio Demo', createdAt: new Date(Date.now() - 1800000).toISOString() },
+        ]);
+        if (m2 === 'post') return ok({ id: uuid(), eventoId: id, ...body, createdAt: new Date().toISOString() }, 201);
+      }
+
+      if (seg === 'riepilogo') {
+        if (m2 === 'post') {
+          const n = { id: uuid(), titolo: `Riepilogo riunione: ${body.eventoTitolo || 'appuntamento'}`, stato: 'da_fare', priorita: 'media', createdAt: new Date().toISOString() };
+          tasks.push(n);
+          return ok(n, 201);
+        }
+      }
+
+      // default: eventi CRUD
       if (m2 === 'get') return ok(eventi);
       if (m2 === 'post') { const n = { id: uuid(), ...body }; eventi.push(n); return ok(n, 201); }
       if (m2 === 'put') { eventi = eventi.map(e => e.id === id ? { ...e, ...body } : e); return ok({ success: true }); }
