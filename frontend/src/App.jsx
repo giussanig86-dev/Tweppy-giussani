@@ -13,6 +13,7 @@ import ComunicazioniPage from './modules/comunicazioni/ComunicazioniPage';
 import WorkflowPage from './modules/workflow/WorkflowPage';
 import ParcellazionePage from './modules/parcellazione/ParcellazionePage';
 import OutlookAddinPage from './pages/OutlookAddinPage';
+import { NotificheProvider } from './context/NotificheContext';
 
 const DEMO = import.meta.env.VITE_DEMO_MODE === 'true';
 
@@ -31,6 +32,7 @@ export default function App() {
           path="/*"
           element={
             <ProtectedRoute>
+              <NotificheProvider>
               <Shell>
                 <Routes>
                   <Route path="/" element={<Navigate to="/anagrafica" replace />} />
@@ -46,6 +48,7 @@ export default function App() {
                   <Route path="/parcellazione" element={<ParcellazionePage />} />
                 </Routes>
               </Shell>
+              </NotificheProvider>
             </ProtectedRoute>
           }
         />

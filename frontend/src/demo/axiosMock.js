@@ -54,6 +54,7 @@ if (import.meta.env.VITE_DEMO_MODE === 'true') {
       const parts = url.split('?')[0].split('/').filter(Boolean);
       const id = parts[2];
       const sub = parts[3]; // 'messaggi' or undefined
+      if (id === 'badge') return ok({ count: tasks.filter(t => t.stato !== 'completato').length });
       if (sub === 'messaggi') {
         if (m2 === 'get') return ok([]);
         if (m2 === 'post') return ok({ id: uuid(), taskId: id, ...body, createdAt: new Date().toISOString() }, 201);
@@ -178,6 +179,7 @@ if (import.meta.env.VITE_DEMO_MODE === 'true') {
         if (m2 === 'get') return ok([]);
         if (m2 === 'post') return ok({ id: uuid(), ...body, createdAt: new Date().toISOString() }, 201);
       }
+      if (url.includes('/badge')) return ok({ count: 3 });
       if (url.includes('/caselle')) return ok(['me', 'info@studiogds.it']);
       if (url.includes('/scansiona')) return ok({ elaborati: 0, dettaglio: [] });
       if (url.includes('/task-da-mail')) {

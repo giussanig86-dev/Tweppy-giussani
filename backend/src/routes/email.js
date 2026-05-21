@@ -17,7 +17,27 @@ const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 25 
 
 const ALLOWED_EXTS = new Set(['.pdf', '.docx', '.xlsx', '.xls', '.jpg', '.jpeg', '.png', '.zip']);
 
+const { createGraphClient } = require('../graph/graphClient');
+
 // Lista caselle configurate
+router.get('/badge', async (req, res) => {
+  try {
+    const caselle = (process.env.MAILBOXES || 'me').split(',').map(s => s.trim()).filter(Boolean);
+    const client = createGraphClient(req.graphToken);
+    let count = 0;
+    for (const casella of caselle) {
+      try {
+        const base = casella === 'me' ? '/me' : `/users/${casella}`;
+        const folder = await client.api(`${base}/mailFolders/inbox`).select('unreadItemCount').get();
+        count += folder.unreadItemCount || 0;
+      } catch {}
+    }
+    res.json({ count });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 router.get('/caselle', (req, res) => {
   const raw = process.env.MAILBOXES || 'me';
   const caselle = raw.split(',').map(s => s.trim()).filter(Boolean);

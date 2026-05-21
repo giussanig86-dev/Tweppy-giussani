@@ -6,6 +6,16 @@ const router = express.Router();
 const LIST = 'Task_Log';
 const CHAT_LIST = 'Task_Messaggi';
 
+router.get('/badge', async (req, res) => {
+  try {
+    const tasks = await getListItems(req.graphToken, LIST);
+    const count = tasks.filter(t => t.stato !== 'completato').length;
+    res.json({ count });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 router.get('/', async (req, res) => {
   try {
     const tasks = await getListItems(req.graphToken, LIST);
