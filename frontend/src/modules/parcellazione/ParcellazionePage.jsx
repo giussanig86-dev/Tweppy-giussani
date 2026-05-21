@@ -5,6 +5,7 @@ import { anagraficaApi } from '../../api/anagrafica';
 import AttivitaForm from './AttivitaForm';
 import Modal from '../../components/ui/Modal';
 import Button from '../../components/ui/Button';
+import SharePointClienteLink from '../../components/ui/SharePointClienteLink';
 
 const TABS = ['Registro Attività', 'Dashboard Redditività', 'Calcola Parcella'];
 
@@ -280,7 +281,12 @@ function RegistroTab({ attivita, clienti, filtroCliente, setFiltroCliente, filtr
                     )}
                   </td>
                   <td className="py-2 pr-3 text-gray-600">{a.data}</td>
-                  <td className="py-2 pr-3 font-medium text-gray-800">{a.clienteNome}</td>
+                  <td className="py-2 pr-3 font-medium text-gray-800">
+                    <div className="flex items-center gap-1">
+                      {a.clienteNome}
+                      <SharePointClienteLink nome={a.clienteNome} />
+                    </div>
+                  </td>
                   <td className="py-2 pr-3 text-gray-600 max-w-xs truncate" title={a.voceDescrizione}>{a.voceDescrizione || a.note}</td>
                   <td className="py-2 pr-3 text-gray-500">{a.collaboratore || '—'}</td>
                   <td className="py-2 pr-3 text-right text-gray-700">{fmt(a.importoNetto)}</td>

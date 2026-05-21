@@ -4,6 +4,7 @@ import { anagraficaApi } from '../../api/anagrafica';
 import { emailApi } from '../../api/email';
 import Modal from '../../components/ui/Modal';
 import Button from '../../components/ui/Button';
+import SharePointClienteLink from '../../components/ui/SharePointClienteLink';
 import EmailNote from './EmailNote';
 import ComposeModal from './ComposeModal';
 
@@ -283,7 +284,10 @@ export default function ComunicazioniPage() {
                   : 'text-gray-700 hover:bg-white'
               }`}
             >
-              <div className="font-medium truncate">{c.ragioneSociale}</div>
+              <div className="flex items-center gap-1">
+                <span className="font-medium truncate">{c.ragioneSociale}</span>
+                <SharePointClienteLink nome={c.ragioneSociale} />
+              </div>
               {c.email && <div className="text-xs text-gray-400 truncate">{c.email}</div>}
             </button>
           ))}
@@ -337,7 +341,10 @@ export default function ComunicazioniPage() {
           {clienteSelezionato ? (
             <div className="flex items-center gap-3">
               <div>
-                <p className="font-semibold text-gray-800">{clienteSelezionato.ragioneSociale}</p>
+                <div className="flex items-center gap-1.5">
+                  <p className="font-semibold text-gray-800">{clienteSelezionato.ragioneSociale}</p>
+                  <SharePointClienteLink nome={clienteSelezionato.ragioneSociale} />
+                </div>
                 {clienteSelezionato.email && <p className="text-xs text-gray-400">{clienteSelezionato.email}</p>}
               </div>
               {spUrl && (

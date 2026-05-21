@@ -1,4 +1,5 @@
 import Button from '../../components/ui/Button';
+import SharePointClienteLink from '../../components/ui/SharePointClienteLink';
 
 const PRIORITY_BADGE = {
   alta: 'bg-red-100 text-red-700',
@@ -61,7 +62,10 @@ export default function TaskList({ tasks, onEdit, onDelete, onSelect, selectedId
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium text-gray-800 truncate">{task.titolo}</p>
               {task.clienteNome && (
-                <p className="text-xs text-gray-400 truncate">{task.clienteNome}</p>
+                <div className="flex items-center gap-1">
+                  <p className="text-xs text-gray-400 truncate">{task.clienteNome}</p>
+                  <SharePointClienteLink nome={task.clienteNome} />
+                </div>
               )}
             </div>
 
