@@ -154,8 +154,12 @@ export default function ComunicazioniPage() {
   const [assegnaClienteId, setAssegnaClienteId] = useState('');
   const [assegnando, setAssegnando] = useState(false);
 
-  // Chat state
-  const [expandedId, setExpandedId] = useState(null);
+  // Email drawer + stato letta/daGestire
+  const [emailModal, setEmailModal] = useState(null);
+  const [letteIds, setLetteIds] = useState(new Set());
+  const [daGestireIds, setDaGestireIds] = useState(() => {
+    try { return new Set(JSON.parse(localStorage.getItem('daGestire') || '[]')); } catch { return new Set(); }
+  });
   const [corpi, setCorpi] = useState({});
   const [allegatiMap, setAllegatiMap] = useState({});
   const [loadingMsg, setLoadingMsg] = useState(null);
@@ -183,9 +187,11 @@ export default function ComunicazioniPage() {
     });
   }, []);
 
+  useEffect(() => { setLetteIds(new Set()); setEmailModal(null); }, [clienteSelezionato?.id]);
+
   async function loadStorico(cliente) {
     if (!cliente) return;
-    setLoading(true); setError(null); setTimeline([]); setExpandedId(null); setCompose(null); setSpUrl(null);
+    setLoading(true); setError(null); setTimeline([]); setEmailModal(null); setCompose(null); setSpUrl(null);
     try {
       const token = await getToken();
       const [data, sp] = await Promise.all([
@@ -207,10 +213,10 @@ export default function ComunicazioniPage() {
     } catch (e) { setError(e.message); } finally { setScanning(false); }
   }
 
-  async function toggleExpand(item) {
+  async function openEmailModal(item) {
     if (!item.messageId) return;
-    if (expandedId === item.messageId) { setExpandedId(null); return; }
-    setExpandedId(item.messageId);
+    setEmailModal(item);
+    setLetteIds(prev => new Set([...prev, item.messageId]));
     if (!corpi[item.messageId]) {
       setLoadingMsg(item.messageId);
       try {
@@ -223,6 +229,15 @@ export default function ComunicazioniPage() {
         setAllegatiMap(prev => ({ ...prev, [item.messageId]: atts }));
       } catch {} finally { setLoadingMsg(null); }
     }
+  }
+
+  function toggleDaGestire(messageId) {
+    setDaGestireIds(prev => {
+      const next = new Set(prev);
+      if (next.has(messageId)) next.delete(messageId); else next.add(messageId);
+      localStorage.setItem('daGestire', JSON.stringify([...next]));
+      return next;
+    });
   }
 
   function handleEmailSent(item) {
@@ -461,7 +476,8 @@ export default function ComunicazioniPage() {
             }
 
             const isRicevuta = item.tipo === 'email_ricevuta';
-            const isExpanded = expandedId === item.messageId;
+            const isLetta = letteIds.has(item.messageId);
+            const isDaGestire = daGestireIds.has(item.messageId);
 
             return (
               <div key={i} className={`flex ${isRicevuta ? 'justify-start' : 'justify-end'}`}>
@@ -471,59 +487,38 @@ export default function ComunicazioniPage() {
                   )}
 
                   <div
-                    onClick={() => isRicevuta && toggleExpand(item)}
-                    className={`rounded-2xl px-4 py-2.5 shadow-sm text-sm ${
+                    onClick={() => isRicevuta && openEmailModal(item)}
+                    className={`rounded-2xl px-4 py-2.5 shadow-sm text-sm transition-shadow ${
                       isRicevuta
-                        ? 'bg-white border border-gray-200 rounded-tl-sm cursor-pointer hover:shadow-md transition-shadow'
+                        ? `bg-white border rounded-tl-sm cursor-pointer hover:shadow-md
+                           ${!isLetta ? 'border-l-4 border-l-blue-400 border-gray-200' : 'border-gray-200'}`
                         : 'bg-brand-600 text-white rounded-tr-sm'
                     }`}
                   >
-                    <p className={`font-medium text-sm ${isRicevuta ? 'text-gray-800' : 'text-white'}`}>
-                      {item.titolo}
-                    </p>
-
-                    {isRicevuta && item.preview && !isExpanded && (
-                      <p className="text-xs text-gray-500 mt-0.5 line-clamp-2">{item.preview}</p>
+                    <div className="flex items-start gap-1.5">
+                      {isRicevuta && !isLetta && (
+                        <span className="w-2 h-2 rounded-full bg-blue-500 shrink-0 mt-1.5" />
+                      )}
+                      <p className={`text-sm leading-snug ${
+                        isRicevuta
+                          ? isLetta ? 'font-medium text-gray-700' : 'font-semibold text-gray-900'
+                          : 'font-medium text-white'
+                      }`}>
+                        {item.titolo}
+                      </p>
+                    </div>
+                    {isRicevuta && item.preview && (
+                      <p className="text-xs text-gray-400 mt-0.5 line-clamp-1 pl-3.5">{item.preview}</p>
                     )}
-
-                    {isRicevuta && isExpanded && (
-                      <div className="mt-2 border-t pt-2">
-                        {loadingMsg === item.messageId ? (
-                          <p className="text-xs text-gray-400">Caricamento...</p>
-                        ) : (
-                          <div
-                            className="text-xs text-gray-700 max-h-48 overflow-y-auto prose prose-sm"
-                            dangerouslySetInnerHTML={{ __html: corpi[item.messageId] || item.preview }}
-                          />
-                        )}
-                        <AllegatiPreview
-                          allegati={allegatiMap[item.messageId]}
-                          messageId={item.messageId}
-                          casella={item.casella}
-                        />
-                        <EmailNote messageId={item.messageId} />
-                        {puoFare('comunicazioni.write') && (
-                          <div className="flex gap-2 mt-2 pt-2 border-t">
-                            <button
-                              onClick={(e) => { e.stopPropagation(); setCompose({ mode: 'reply', replyTo: { messageId: item.messageId, subject: item.titolo, fromEmail: item.fromEmail || '', bodyPreview: item.preview || '' } }); }}
-                              className="text-xs bg-brand-50 text-brand-700 hover:bg-brand-100 px-2 py-1 rounded font-medium transition"
-                            >
-                              ↩ Rispondi
-                            </button>
-                            <button
-                              onClick={(e) => { e.stopPropagation(); setTaskModal({ messageId: item.messageId, casella: item.casella, titolo: item.titolo }); setTaskForm({ assegnato: '', priorita: 'media' }); }}
-                              className="text-xs bg-green-50 text-green-700 hover:bg-green-100 px-2 py-1 rounded font-medium transition"
-                            >
-                              ✅ Crea Task
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                    )}
-
-                    {isRicevuta && (
-                      <p className="text-xs text-gray-400 mt-1">{fmt(item.data)}</p>
-                    )}
+                    <div className="flex items-center gap-2 mt-1 pl-3.5">
+                      {isRicevuta && <p className="text-xs text-gray-400">{fmt(item.data)}</p>}
+                      {isDaGestire && (
+                        <span className="text-xs bg-orange-100 text-orange-700 px-1.5 py-0.5 rounded font-medium">⚠ Da gestire</span>
+                      )}
+                      {isRicevuta && !isLetta && (
+                        <span className="text-xs bg-blue-50 text-blue-600 px-1.5 py-0.5 rounded">Non letta</span>
+                      )}
+                    </div>
                   </div>
 
                   {!isRicevuta && (
@@ -537,6 +532,91 @@ export default function ComunicazioniPage() {
         </div>
 
       </div>
+
+      {/* ── Drawer email grande ──────────────────────────────────────────── */}
+      {emailModal && (
+        <div className="fixed inset-0 z-40 flex" onClick={() => setEmailModal(null)}>
+          {/* Overlay semitrasparente */}
+          <div className="flex-1 bg-black/30" />
+          {/* Pannello laterale */}
+          <div
+            className="w-full max-w-2xl h-full bg-white shadow-2xl flex flex-col"
+            onClick={e => e.stopPropagation()}
+          >
+            {/* Header drawer */}
+            <div className="flex items-start gap-3 px-5 py-4 border-b shrink-0">
+              <div className="flex-1 min-w-0">
+                <p className="font-semibold text-gray-900 text-base leading-snug">{emailModal.titolo}</p>
+                {emailModal.fromEmail && (
+                  <p className="text-xs text-gray-500 mt-0.5">Da: {emailModal.fromEmail}</p>
+                )}
+                <p className="text-xs text-gray-400 mt-0.5">{fmt(emailModal.data)}</p>
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                <button
+                  onClick={() => toggleDaGestire(emailModal.messageId)}
+                  className={`text-xs px-2.5 py-1.5 rounded-lg font-medium transition border ${
+                    daGestireIds.has(emailModal.messageId)
+                      ? 'bg-orange-100 text-orange-700 border-orange-200 hover:bg-orange-200'
+                      : 'bg-gray-100 text-gray-500 border-gray-200 hover:bg-gray-200'
+                  }`}
+                >
+                  {daGestireIds.has(emailModal.messageId) ? '⚠ Da gestire' : '☐ Segna da gestire'}
+                </button>
+                <button
+                  onClick={() => setEmailModal(null)}
+                  className="text-gray-400 hover:text-gray-700 text-xl leading-none w-7 h-7 flex items-center justify-center rounded-lg hover:bg-gray-100 transition"
+                >
+                  ✕
+                </button>
+              </div>
+            </div>
+
+            {/* Corpo email */}
+            <div className="flex-1 overflow-y-auto px-5 py-4">
+              {loadingMsg === emailModal.messageId ? (
+                <p className="text-sm text-gray-400">Caricamento corpo email...</p>
+              ) : (
+                <div
+                  className="prose prose-sm max-w-none text-gray-800 text-sm"
+                  dangerouslySetInnerHTML={{ __html: corpi[emailModal.messageId] || emailModal.preview || '' }}
+                />
+              )}
+              <AllegatiPreview
+                allegati={allegatiMap[emailModal.messageId]}
+                messageId={emailModal.messageId}
+                casella={emailModal.casella}
+              />
+              <EmailNote messageId={emailModal.messageId} />
+            </div>
+
+            {/* Azioni */}
+            {puoFare('comunicazioni.write') && (
+              <div className="flex gap-2 px-5 py-3 border-t shrink-0 bg-gray-50">
+                <button
+                  onClick={() => {
+                    setEmailModal(null);
+                    setCompose({ mode: 'reply', replyTo: { messageId: emailModal.messageId, subject: emailModal.titolo, fromEmail: emailModal.fromEmail || '', bodyPreview: emailModal.preview || '' } });
+                  }}
+                  className="text-sm bg-brand-50 text-brand-700 hover:bg-brand-100 px-4 py-2 rounded-lg font-medium transition"
+                >
+                  ↩ Rispondi
+                </button>
+                <button
+                  onClick={() => {
+                    setEmailModal(null);
+                    setTaskModal({ messageId: emailModal.messageId, casella: emailModal.casella, titolo: emailModal.titolo });
+                    setTaskForm({ assegnato: '', priorita: 'media' });
+                  }}
+                  className="text-sm bg-green-50 text-green-700 hover:bg-green-100 px-4 py-2 rounded-lg font-medium transition"
+                >
+                  ✅ Crea Task
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Modal Crea Task */}
       <Modal open={!!taskModal} onClose={() => setTaskModal(null)} title="Crea Task da Email">
