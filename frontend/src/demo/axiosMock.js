@@ -40,6 +40,13 @@ if (import.meta.env.VITE_DEMO_MODE === 'true') {
         return ok({ success: true });
       }
       if (m2 === 'delete') { clienti = clienti.map(c => c.id === id ? { ...c, stato: 'eliminato' } : c); return ok({ success: true }); }
+      if (m2 === 'post' && url.includes('/crea-cartelline')) {
+        return ok({
+          creato: ['01 - Vita societaria', '02 - Pratiche', '03 - Dichiarazioni fiscali', '04 - Contabilità', '05 - Buste paga', '06 - F24 e Versamenti'],
+          esistente: ['07 - Privacy e GDPR', '08 - Corrispondenza'],
+          errore: [],
+        });
+      }
     }
 
     // ── tasks ──────────────────────────────────────────────────────────────

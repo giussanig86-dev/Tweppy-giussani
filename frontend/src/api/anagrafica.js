@@ -12,4 +12,6 @@ export const anagraficaApi = {
   create: (token, data) => axios.post(BASE, data, { headers: headers(token) }).then((r) => r.data),
   update: (token, id, data) => axios.put(`${BASE}/${id}`, data, { headers: headers(token) }).then((r) => r.data),
   remove: (token, id) => axios.delete(`${BASE}/${id}`, { headers: headers(token) }).then((r) => r.data),
+  creaCartelline: (token, id) =>
+    axios.post(`${BASE}/${id}/crea-cartelline`, {}, { headers: headers(token) }).then((r) => r.data),
 };

@@ -17,6 +17,8 @@ export default function AnagraficaPage() {
   const [search, setSearch] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
   const [selected, setSelected] = useState(null);
+  const [creatingFoldersId, setCreatingFoldersId] = useState(null);
+  const [cartelleResult, setCartelleResult] = useState(null);
 
   async function loadClienti() {
     try {
@@ -57,6 +59,19 @@ export default function AnagraficaPage() {
     loadClienti();
   }
 
+  async function handleCreaCartelline(cliente) {
+    setCreatingFoldersId(cliente.id);
+    try {
+      const token = await getToken();
+      const res = await anagraficaApi.creaCartelline(token, cliente.id);
+      setCartelleResult({ cliente: cliente.ragioneSociale, ...res });
+    } catch (e) {
+      setCartelleResult({ cliente: cliente.ragioneSociale, creato: [], esistente: [], errore: [{ cartella: '—', errore: e.message }] });
+    } finally {
+      setCreatingFoldersId(null);
+    }
+  }
+
   async function handleDelete(id) {
     if (!confirm('Eliminare il cliente? Resterà nello storico.')) return;
     const token = await getToken();
@@ -95,8 +110,67 @@ export default function AnagraficaPage() {
       {loading ? (
         <p className="text-gray-500">Caricamento...</p>
       ) : (
-        <ClienteTable clienti={filtered} onEdit={openEdit} onDelete={handleDelete} />
+        <ClienteTable
+          clienti={filtered}
+          onEdit={openEdit}
+          onDelete={handleDelete}
+          onCreaCartelline={handleCreaCartelline}
+          creatingFoldersId={creatingFoldersId}
+        />
       )}
+
+      {/* Modal risultato crea-cartelline */}
+      <Modal open={!!cartelleResult} onClose={() => setCartelleResult(null)} title="📁 Cartelle SharePoint">
+        {cartelleResult && (
+          <div className="space-y-3 text-sm">
+            <p className="text-gray-600">
+              Struttura cartelle per <strong>{cartelleResult.cliente}</strong>
+            </p>
+            {cartelleResult.creato?.length > 0 && (
+              <div>
+                <p className="text-xs font-semibold text-green-700 mb-1">Create ora</p>
+                <ul className="space-y-0.5">
+                  {cartelleResult.creato.map(c => (
+                    <li key={c} className="flex items-center gap-2 text-xs text-green-700">
+                      <span className="text-green-500">✓</span> {c}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            {cartelleResult.esistente?.length > 0 && (
+              <div>
+                <p className="text-xs font-semibold text-gray-500 mb-1">Già presenti</p>
+                <ul className="space-y-0.5">
+                  {cartelleResult.esistente.map(c => (
+                    <li key={c} className="flex items-center gap-2 text-xs text-gray-500">
+                      <span>↩</span> {c}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            {cartelleResult.errore?.length > 0 && (
+              <div>
+                <p className="text-xs font-semibold text-red-600 mb-1">Errori</p>
+                <ul className="space-y-0.5">
+                  {cartelleResult.errore.map((e, i) => (
+                    <li key={i} className="text-xs text-red-600">✕ {e.cartella}: {e.errore}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            <div className="flex justify-end pt-2">
+              <button
+                onClick={() => setCartelleResult(null)}
+                className="px-4 py-1.5 text-sm bg-gray-100 hover:bg-gray-200 rounded-lg transition"
+              >
+                Chiudi
+              </button>
+            </div>
+          </div>
+        )}
+      </Modal>
 
       <Modal
         open={modalOpen}

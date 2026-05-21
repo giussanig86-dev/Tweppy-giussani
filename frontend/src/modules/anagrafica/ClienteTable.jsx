@@ -7,7 +7,7 @@ const STATO_BADGE = {
   inattivo:       'bg-gray-100 text-gray-600',
 };
 
-export default function ClienteTable({ clienti, onEdit, onDelete }) {
+export default function ClienteTable({ clienti, onEdit, onDelete, onCreaCartelline, creatingFoldersId }) {
   if (clienti.length === 0) {
     return <p className="text-gray-400 text-sm py-8 text-center">Nessun cliente trovato.</p>;
   }
@@ -43,6 +43,17 @@ export default function ClienteTable({ clienti, onEdit, onDelete }) {
               </td>
               <td className="px-4 py-3 text-gray-600">{c.referente}</td>
               <td className="px-4 py-3 flex gap-2 justify-end">
+                {onCreaCartelline && (
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    onClick={() => onCreaCartelline(c)}
+                    disabled={creatingFoldersId === c.id}
+                    title="Crea cartelle SharePoint per questo cliente"
+                  >
+                    {creatingFoldersId === c.id ? '⏳' : '📁'}
+                  </Button>
+                )}
                 <Button size="sm" variant="secondary" onClick={() => onEdit(c)}>Modifica</Button>
                 <Button size="sm" variant="danger" onClick={() => onDelete(c.id)}>Elimina</Button>
               </td>

@@ -1,5 +1,5 @@
 const { createGraphClient } = require('./graphClient');
-const { buildClientFolderPath, sanitizeFileName } = require('../utils/fileUtils');
+const { buildClientFolderPath, sanitizeFileName, SCHEMA_CARTELLE } = require('../utils/fileUtils');
 
 const SITE_ID = process.env.SHAREPOINT_SITE_ID;
 
@@ -29,4 +29,43 @@ async function saveClientDocument(accessToken, { buffer, originalname, tipoDocum
   return { folder, fileName };
 }
 
-module.exports = { saveClientDocument };
+async function createClientFolders(accessToken, ragioneSociale) {
+  const client = createGraphClient(accessToken);
+  const driveId = await getDriveId(client);
+  const safe = sanitizeFileName(ragioneSociale.replace(/[/\\?%*:|"<>]/g, '-').trim());
+  const rootPath = `01 - Clienti/Cliente - ${safe}`;
+  const risultati = { creato: [], esistente: [], errore: [] };
+
+  // Crea prima la cartella radice cliente
+  try {
+    await client
+      .api(`/sites/${SITE_ID}/drives/${driveId}/root:/01 - Clienti:/children`)
+      .post({ name: `Cliente - ${safe}`, folder: {}, '@microsoft.graph.conflictBehavior': 'fail' });
+    risultati.creato.push(`Cliente - ${safe}`);
+  } catch (e) {
+    if (e.statusCode === 409 || (e.message || '').includes('nameAlreadyExists')) {
+      risultati.esistente.push(`Cliente - ${safe}`);
+    } else if (e.statusCode !== 404) {
+      // 404 means "01 - Clienti" doesn't exist yet — ignore silently and continue
+    }
+  }
+
+  // Crea le 8 sottocartelle
+  for (const cartella of SCHEMA_CARTELLE) {
+    try {
+      await client
+        .api(`/sites/${SITE_ID}/drives/${driveId}/root:/${rootPath}:/children`)
+        .post({ name: cartella, folder: {}, '@microsoft.graph.conflictBehavior': 'fail' });
+      risultati.creato.push(cartella);
+    } catch (e) {
+      if (e.statusCode === 409 || (e.message || '').includes('nameAlreadyExists')) {
+        risultati.esistente.push(cartella);
+      } else {
+        risultati.errore.push({ cartella, errore: e.message });
+      }
+    }
+  }
+  return risultati;
+}
+
+module.exports = { saveClientDocument, createClientFolders };

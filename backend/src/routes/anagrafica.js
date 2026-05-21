@@ -2,6 +2,7 @@ const express = require('express');
 const { v4: uuidv4 } = require('uuid');
 const { getListItems, createListItem, updateListItem, deleteListItem } = require('../graph/sharepoint');
 const { validateCodiceFiscale, validatePartitaIva } = require('../utils/validators');
+const { createClientFolders } = require('../graph/files');
 
 const router = express.Router();
 const LIST_NAME = 'Anagrafica_GDS';
@@ -75,6 +76,19 @@ router.put('/:id', async (req, res) => {
       await Promise.all(futuri.map(i => deleteListItem(req.graphToken, 'Checklist_Adempimenti', i.id)));
     }
     res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Crea struttura cartelle SharePoint per il cliente
+router.post('/:id/crea-cartelline', async (req, res) => {
+  try {
+    const items = await getListItems(req.graphToken, LIST_NAME);
+    const cliente = items.find((c) => c.id === req.params.id);
+    if (!cliente) return res.status(404).json({ error: 'Cliente non trovato' });
+    const risultati = await createClientFolders(req.graphToken, cliente.ragioneSociale);
+    res.json(risultati);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
