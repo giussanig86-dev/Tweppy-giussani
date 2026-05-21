@@ -182,6 +182,21 @@ if (import.meta.env.VITE_DEMO_MODE === 'true') {
         }
       }
 
+      if (seg === 'auto-riepilogo') {
+        if (m2 === 'post') {
+          // Simula creazione task per eventi passati non ancora coperti
+          const passati = eventi.filter(ev => {
+            const fine = ev.end?.dateTime || ev.fine;
+            return fine && new Date(fine) < new Date();
+          });
+          const nuovi = passati.filter(ev => !tasks.some(t => t.eventoId === ev.id));
+          nuovi.forEach(ev => {
+            tasks.push({ id: uuid(), eventoId: ev.id, titolo: `Riepilogo riunione: ${ev.subject || ev.titolo || 'appuntamento'}`, stato: 'da_fare', priorita: 'media', createdAt: new Date().toISOString() });
+          });
+          return ok({ creati: nuovi.length });
+        }
+      }
+
       // default: eventi CRUD
       if (m2 === 'get') return ok(eventi);
       if (m2 === 'post') { const n = { id: uuid(), ...body }; eventi.push(n); return ok(n, 201); }

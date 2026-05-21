@@ -1,12 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useAuth } from '../../auth/useAuth';
-import { useRuolo } from '../../context/RuoloContext';
 import { calendarioApi } from '../../api/calendario';
 import EventoForm from './EventoForm';
 import EventoChat from './EventoChat';
 import Modal from '../../components/ui/Modal';
-import Button from '../../components/ui/Button';
 
 const GIORNI = ['Lun','Mar','Mer','Gio','Ven','Sab','Dom'];
 const MESI_IT = ['Gennaio','Febbraio','Marzo','Aprile','Maggio','Giugno',
@@ -44,8 +42,7 @@ function formatTime(dt) {
 }
 
 export default function CalendarioPage() {
-  const { getToken, account } = useAuth();
-  const { puoFare } = useRuolo();
+  const { getToken } = useAuth();
   const location = useLocation();
   const now = new Date();
   const [year, setYear] = useState(now.getFullYear());
@@ -56,7 +53,6 @@ export default function CalendarioPage() {
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [selectedDate, setSelectedDate] = useState(null);
   const [chatTab, setChatTab] = useState('dettagli');
-  const [riepilogoSaving, setRiepilogoSaving] = useState(false);
   const [error, setError] = useState(null);
 
   async function loadEventi(y, m) {
@@ -73,6 +69,8 @@ export default function CalendarioPage() {
   useEffect(() => { loadEventi(year, month); }, [year, month]);
   useEffect(() => {
     if (location.state?.openNew) openNew(isoDate(now.getFullYear(), now.getMonth(), now.getDate()));
+    // Crea automaticamente task riepilogo per eventi terminati negli ultimi 7 giorni
+    getToken().then(token => calendarioApi.autoRiepilogo(token)).catch(() => {});
   }, []);
 
   function prevMonth() {
@@ -88,23 +86,6 @@ export default function CalendarioPage() {
   function openNew(dateStr) { setSelectedEvent(null); setSelectedDate(dateStr); setChatTab('dettagli'); setModalOpen(true); }
   function openEdit(ev) { setSelectedEvent(ev); setSelectedDate(null); setChatTab('dettagli'); setModalOpen(true); }
   function closeModal() { setModalOpen(false); setSelectedEvent(null); setSelectedDate(null); }
-
-  async function handleCreaRiepilogo() {
-    if (!selectedEvent) return;
-    setRiepilogoSaving(true);
-    try {
-      const token = await getToken();
-      const data = selectedEvent.start?.dateTime || selectedEvent.inizio || '';
-      await calendarioApi.creaRiepilogo(token, selectedEvent.id, {
-        eventoTitolo: selectedEvent.subject || selectedEvent.titolo || '',
-        eventoData: data ? new Date(data).toLocaleDateString('it-IT') : '',
-        clienteId: selectedEvent.clienteId || '',
-        clienteNome: selectedEvent.clienteNome || '',
-        assegnato: account?.name || '',
-      });
-      closeModal();
-    } catch (e) { alert(e.message); } finally { setRiepilogoSaving(false); }
-  }
 
   async function handleSave(data) {
     const token = await getToken();
@@ -229,32 +210,13 @@ export default function CalendarioPage() {
             </div>
 
             {chatTab === 'dettagli' ? (
-              <>
-                <EventoForm
-                  initial={selectedEvent}
-                  selectedDate={selectedDate}
-                  onSave={handleSave}
-                  onCancel={closeModal}
-                  onDelete={handleDelete}
-                />
-                {/* Riepilogo button for past events */}
-                {puoFare('calendario.write') && (() => {
-                  const dt = selectedEvent.start?.dateTime || selectedEvent.inizio;
-                  const isPast = dt && new Date(dt) < new Date();
-                  return isPast ? (
-                    <div className="mt-3 pt-3 border-t">
-                      <Button
-                        size="sm"
-                        variant="secondary"
-                        onClick={handleCreaRiepilogo}
-                        disabled={riepilogoSaving}
-                      >
-                        {riepilogoSaving ? 'Creazione...' : '📝 Crea task riepilogo riunione'}
-                      </Button>
-                    </div>
-                  ) : null;
-                })()}
-              </>
+              <EventoForm
+                initial={selectedEvent}
+                selectedDate={selectedDate}
+                onSave={handleSave}
+                onCancel={closeModal}
+                onDelete={handleDelete}
+              />
             ) : (
               <EventoChat evento={selectedEvent} />
             )}

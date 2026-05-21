@@ -11,5 +11,6 @@ export const calendarioApi = {
 
   listChat:     (token, eventoId)   => axios.get(`${BASE}/chat/${eventoId}`, { headers: h(token) }).then(r => r.data),
   sendChat:     (token, eventoId, data) => axios.post(`${BASE}/chat/${eventoId}`, data, { headers: h(token) }).then(r => r.data),
-  creaRiepilogo:(token, eventoId, data) => axios.post(`${BASE}/riepilogo/${eventoId}`, data, { headers: h(token) }).then(r => r.data),
+  creaRiepilogo:  (token, eventoId, data) => axios.post(`${BASE}/riepilogo/${eventoId}`, data, { headers: h(token) }).then(r => r.data),
+  autoRiepilogo:  (token)               => axios.post(`${BASE}/auto-riepilogo`, {}, { headers: h(token) }).then(r => r.data),
 };

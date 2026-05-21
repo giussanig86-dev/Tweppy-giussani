@@ -84,23 +84,47 @@ router.post('/chat/:eventoId', async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// ── Crea task riepilogo riunione ───────────────────────────────────────────
+// ── Auto-crea task riepilogo per eventi terminati (ultimi 7 giorni) ────────
 
-router.post('/riepilogo/:eventoId', async (req, res) => {
+router.post('/auto-riepilogo', async (req, res) => {
   try {
-    const { eventoTitolo, eventoData, clienteId, clienteNome, assegnato } = req.body;
-    const task = await createListItem(req.graphToken, TASKS_LIST, {
-      id: uuidv4(),
-      titolo: `Riepilogo riunione: ${eventoTitolo || 'appuntamento'}`,
-      descrizione: `Inserire il riepilogo della riunione del ${eventoData || ''}.`,
-      assegnato: assegnato || '',
-      clienteId: clienteId || '',
-      clienteNome: clienteNome || '',
-      stato: 'da_fare',
-      priorita: 'media',
-      createdAt: new Date().toISOString(),
+    const now = new Date();
+    const weekAgo = new Date(now - 7 * 24 * 60 * 60 * 1000);
+    const start = weekAgo.toISOString().slice(0, 10);
+    const end   = now.toISOString().slice(0, 10);
+
+    const eventiPassati = await getEventi(req.graphToken, start, end);
+    const terminati = eventiPassati.filter(ev => {
+      const fine = ev.end?.dateTime || ev.fine;
+      return fine && new Date(fine) < now;
     });
-    res.status(201).json(task);
+
+    if (!terminati.length) return res.json({ creati: 0 });
+
+    // Evita duplicati: leggi tasks già create con eventoId
+    const existingTasks = await getListItems(req.graphToken, TASKS_LIST);
+    const idsCoperti = new Set(existingTasks.filter(t => t.eventoId).map(t => t.eventoId));
+
+    let creati = 0;
+    for (const ev of terminati) {
+      if (idsCoperti.has(ev.id)) continue;
+      const fine = ev.end?.dateTime || ev.fine || '';
+      await createListItem(req.graphToken, TASKS_LIST, {
+        id: uuidv4(),
+        eventoId: ev.id,
+        titolo: `Riepilogo riunione: ${ev.subject || ev.titolo || 'appuntamento'}`,
+        descrizione: `Inserire il riepilogo della riunione del ${fine ? new Date(fine).toLocaleDateString('it-IT') : ''}.`,
+        assegnato: '',
+        clienteId: ev.clienteId || '',
+        clienteNome: ev.clienteNome || '',
+        stato: 'da_fare',
+        priorita: 'media',
+        createdAt: new Date().toISOString(),
+      });
+      creati++;
+    }
+
+    res.json({ creati });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
