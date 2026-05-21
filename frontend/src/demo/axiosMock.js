@@ -184,7 +184,7 @@ if (import.meta.env.VITE_DEMO_MODE === 'true') {
         if (m2 === 'get') return ok([]);
         if (m2 === 'post') return ok({ id: uuid(), ...body, createdAt: new Date().toISOString() }, 201);
       }
-      if (url.includes('/badge')) return ok({ count: 3 });
+      if (url.includes('/badge')) return ok({ count: 3, perCasella: { me: 2, 'info@studiogds.it': 1 } });
       if (url.includes('/caselle')) return ok(['me', 'info@studiogds.it']);
       if (url.includes('/scansiona')) return ok({ elaborati: 0, dettaglio: [] });
       if (url.includes('/task-da-mail')) {

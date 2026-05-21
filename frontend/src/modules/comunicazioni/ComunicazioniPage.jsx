@@ -6,6 +6,8 @@ import Modal from '../../components/ui/Modal';
 import Button from '../../components/ui/Button';
 import SharePointClienteLink from '../../components/ui/SharePointClienteLink';
 import { useRuolo } from '../../context/RuoloContext';
+import { useNotifiche } from '../../context/NotificheContext';
+import { useMailboxPrefs } from '../../hooks/useMailboxPrefs';
 import EmailNote from './EmailNote';
 import ComposeModal from './ComposeModal';
 
@@ -132,8 +134,11 @@ function AllegatiPreview({ allegati, messageId, casella }) {
 export default function ComunicazioniPage() {
   const { getToken } = useAuth();
   const { puoFare } = useRuolo();
+  const { refreshEmailCount } = useNotifiche();
   const [clienti, setClienti] = useState([]);
   const [caselle, setCaselle] = useState(['me']);
+  const [showPrefs, setShowPrefs] = useState(false);
+  const { getPref, setPref, caselleVisibili } = useMailboxPrefs(caselle);
   const [clienteSelezionato, setClienteSelezionato] = useState(null);
   const [timeline, setTimeline] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -366,10 +371,49 @@ export default function ComunicazioniPage() {
           )}
           <div className="flex items-center gap-2">
             {caselle.length > 1 && (
-              <div className="flex items-center gap-1 text-xs text-gray-400">
-                {caselle.map(c => (
-                  <span key={c} className="bg-gray-100 px-2 py-0.5 rounded">{c === 'me' ? '(principale)' : c}</span>
-                ))}
+              <div className="relative">
+                <button
+                  onClick={() => setShowPrefs(p => !p)}
+                  title="Preferenze caselle email"
+                  className="flex items-center gap-1 text-xs text-gray-500 bg-gray-100 hover:bg-gray-200 px-2 py-1 rounded-lg transition"
+                >
+                  ⚙️ Caselle
+                </button>
+                {showPrefs && (
+                  <div className="absolute right-0 top-8 w-72 bg-white border rounded-xl shadow-xl z-50 p-3">
+                    <p className="text-xs font-semibold text-gray-700 mb-2">Preferenze caselle email</p>
+                    <div className="space-y-2">
+                      {caselle.map(c => {
+                        const pref = getPref(c);
+                        const label = c === 'me' ? 'Casella principale' : c;
+                        return (
+                          <div key={c} className="flex items-center justify-between gap-2 text-xs py-1 border-b last:border-0">
+                            <span className="text-gray-700 truncate flex-1">{label}</span>
+                            <label className="flex items-center gap-1 cursor-pointer">
+                              <input
+                                type="checkbox"
+                                checked={pref.visibile}
+                                onChange={e => { setPref(c, 'visibile', e.target.checked); if (!e.target.checked) setPref(c, 'notifiche', false); }}
+                                className="rounded"
+                              />
+                              <span className="text-gray-500">Visibile</span>
+                            </label>
+                            <label className="flex items-center gap-1 cursor-pointer">
+                              <input
+                                type="checkbox"
+                                checked={pref.notifiche && pref.visibile}
+                                disabled={!pref.visibile}
+                                onChange={e => { setPref(c, 'notifiche', e.target.checked); refreshEmailCount(); }}
+                                className="rounded"
+                              />
+                              <span className={pref.visibile ? 'text-gray-500' : 'text-gray-300'}>Notifiche</span>
+                            </label>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
               </div>
             )}
             {clienteSelezionato && puoFare('comunicazioni.write') && (
@@ -398,7 +442,11 @@ export default function ComunicazioniPage() {
             <p className="text-center text-gray-400 mt-20">Nessuna comunicazione registrata.</p>
           )}
 
-          {[...timeline].reverse().map((item, i) => {
+          {[...timeline].reverse().filter(item => {
+            if (item.tipo !== 'email_ricevuta' && item.tipo !== 'email_inviata') return true;
+            const c = item.casella || 'me';
+            return caselleVisibili.length === 0 || caselleVisibili.includes(c);
+          }).map((item, i) => {
             if (item.tipo === 'task' || item.tipo === 'documento') {
               return (
                 <div key={i} className="flex justify-center">

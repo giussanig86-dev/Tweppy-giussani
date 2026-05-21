@@ -24,15 +24,16 @@ router.get('/badge', async (req, res) => {
   try {
     const caselle = (process.env.MAILBOXES || 'me').split(',').map(s => s.trim()).filter(Boolean);
     const client = createGraphClient(req.graphToken);
-    let count = 0;
+    const perCasella = {};
     for (const casella of caselle) {
       try {
         const base = casella === 'me' ? '/me' : `/users/${casella}`;
         const folder = await client.api(`${base}/mailFolders/inbox`).select('unreadItemCount').get();
-        count += folder.unreadItemCount || 0;
-      } catch {}
+        perCasella[casella] = folder.unreadItemCount || 0;
+      } catch { perCasella[casella] = 0; }
     }
-    res.json({ count });
+    const count = Object.values(perCasella).reduce((a, b) => a + b, 0);
+    res.json({ count, perCasella });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
