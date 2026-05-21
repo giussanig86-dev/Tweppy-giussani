@@ -1,8 +1,13 @@
 const { createGraphClient } = require('./graphClient');
 
-async function sendMail(accessToken, { to, subject, body }) {
+function mailboxPath(mailbox) {
+  return mailbox && mailbox !== 'me' ? `/users/${mailbox}` : '/me';
+}
+
+async function sendMail(accessToken, { to, subject, body, mailbox = 'me' }) {
   const client = createGraphClient(accessToken);
-  await client.api('/me/sendMail').post({
+  const base = mailboxPath(mailbox);
+  await client.api(`${base}/sendMail`).post({
     message: {
       subject,
       body: { contentType: 'HTML', content: body },

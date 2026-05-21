@@ -12,6 +12,7 @@ import CalendarioPage from './modules/calendario/CalendarioPage';
 import ComunicazioniPage from './modules/comunicazioni/ComunicazioniPage';
 import WorkflowPage from './modules/workflow/WorkflowPage';
 import ParcellazionePage from './modules/parcellazione/ParcellazionePage';
+import OutlookAddinPage from './pages/OutlookAddinPage';
 
 const DEMO = import.meta.env.VITE_DEMO_MODE === 'true';
 
@@ -24,6 +25,7 @@ export default function App() {
   return (
     <BrowserRouter>
       <Routes>
+        <Route path="/outlook" element={<OutlookAddinPage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route
           path="/*"

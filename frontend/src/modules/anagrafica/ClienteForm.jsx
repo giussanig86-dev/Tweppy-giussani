@@ -1,6 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { validateCodiceFiscale, validatePartitaIva } from '../../utils/validators';
 import Button from '../../components/ui/Button';
+import { useAuth } from '../../auth/useAuth';
+import { emailApi } from '../../api/email';
 
 const CATEGORIE_ANAGRAFICA = [
   'avvocato', 'studio paghe', 'aggiornamento professionale',
@@ -26,7 +28,7 @@ const EMPTY = {
   indirizzo: '', cap: '', comune: '', provincia: '',
   email: '', pec: '', telefono: '',
   referente: '', dataInizioRapporto: '', stato: 'attivo', note: '',
-  collaboratoreAssegnato: '',
+  collaboratoreAssegnato: '', defaultCasella: '',
 };
 
 function Field({ label, error, children }) {
@@ -89,9 +91,15 @@ function parseJson(val, fallback) {
 }
 
 export default function ClienteForm({ initial, onSave, onCancel }) {
+  const { getToken } = useAuth();
   const [form, setForm] = useState({ ...EMPTY, ...initial });
   const [errors, setErrors] = useState({});
   const [saving, setSaving] = useState(false);
+  const [caselle, setCaselle] = useState([]);
+
+  useEffect(() => {
+    getToken().then(t => emailApi.caselle(t).catch(() => [])).then(setCaselle);
+  }, []);
 
   const [indirizziSecondari, setIndirizziSecondari] = useState(() =>
     parseJson(initial?.indirizziSecondari, [])
@@ -248,6 +256,16 @@ export default function ClienteForm({ initial, onSave, onCancel }) {
           </Field>
           <Field label="PEC">
             <Input type="email" value={form.pec} onChange={e => set('pec', e.target.value)} />
+          </Field>
+          <Field label="Casella email predefinita">
+            <select
+              value={form.defaultCasella || ''}
+              onChange={e => set('defaultCasella', e.target.value)}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 bg-white"
+            >
+              <option value="">— Casella principale (me) —</option>
+              {caselle.filter(c => c !== 'me').map(c => <option key={c} value={c}>{c}</option>)}
+            </select>
           </Field>
           <Field label="Telefono">
             <Input value={form.telefono} onChange={e => set('telefono', e.target.value)} />

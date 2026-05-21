@@ -69,7 +69,8 @@ router.post('/invia-batch', async (req, res) => {
       const oggetto = riempiTemplate(template.oggetto, cliente);
       const corpo = riempiTemplate(template.corpo, cliente);
       try {
-        await sendMail(req.graphToken, { to: cliente.email, subject: oggetto, body: corpo });
+        const casella = cliente.defaultCasella || 'me';
+        await sendMail(req.graphToken, { to: cliente.email, subject: oggetto, body: corpo, mailbox: casella });
         await createListItem(req.graphToken, LIST_LOG, {
           id: uuidv4(),
           templateId,
@@ -78,6 +79,7 @@ router.post('/invia-batch', async (req, res) => {
           clienteNome: cliente.ragioneSociale,
           email: cliente.email,
           oggetto,
+          casella,
           stato: 'inviato',
           inviatoAt: new Date().toISOString(),
         });
