@@ -14,6 +14,8 @@ import WorkflowPage from './modules/workflow/WorkflowPage';
 import ParcellazionePage from './modules/parcellazione/ParcellazionePage';
 import OutlookAddinPage from './pages/OutlookAddinPage';
 import { NotificheProvider } from './context/NotificheContext';
+import { RuoloProvider } from './context/RuoloContext';
+import GestioneUtenti from './modules/utenti/GestioneUtenti';
 
 const DEMO = import.meta.env.VITE_DEMO_MODE === 'true';
 
@@ -32,6 +34,7 @@ export default function App() {
           path="/*"
           element={
             <ProtectedRoute>
+              <RuoloProvider>
               <NotificheProvider>
               <Shell>
                 <Routes>
@@ -46,9 +49,11 @@ export default function App() {
                   <Route path="/comunicazioni" element={<ComunicazioniPage />} />
                   <Route path="/workflow" element={<WorkflowPage />} />
                   <Route path="/parcellazione" element={<ParcellazionePage />} />
+                  <Route path="/utenti" element={<GestioneUtenti />} />
                 </Routes>
               </Shell>
               </NotificheProvider>
+              </RuoloProvider>
             </ProtectedRoute>
           }
         />

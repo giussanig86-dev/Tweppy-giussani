@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../../auth/useAuth';
+import { useRuolo } from '../../context/RuoloContext';
 import { anagraficaApi } from '../../api/anagrafica';
 import { checklistApi } from '../../api/checklist';
 import ChecklistTable from './ChecklistTable';
@@ -21,6 +22,7 @@ function StatCard({ label, value, color }) {
 
 function VistaCliente() {
   const { getToken } = useAuth();
+  const { puoFare } = useRuolo();
   const [clienti, setClienti] = useState([]);
   const [clienteId, setClienteId] = useState('');
   const [anno, setAnno] = useState(ANNO_CORRENTE);
@@ -96,9 +98,11 @@ function VistaCliente() {
             {ANNI.map(a => <option key={a} value={a}>{a}</option>)}
           </select>
         </div>
-        <Button onClick={handleGenera} disabled={!clienteId || generating}>
-          {generating ? 'Generazione...' : items.length > 0 ? 'Rigenera Checklist' : 'Genera Checklist'}
-        </Button>
+        {puoFare('checklist.genera') && (
+          <Button onClick={handleGenera} disabled={!clienteId || generating}>
+            {generating ? 'Generazione...' : items.length > 0 ? 'Rigenera Checklist' : 'Genera Checklist'}
+          </Button>
+        )}
       </div>
 
       {isCessazione && (
@@ -120,7 +124,7 @@ function VistaCliente() {
       {loading ? (
         <p className="text-gray-500">Caricamento...</p>
       ) : items.length > 0 ? (
-        <ChecklistTable items={items} onStatoChange={handleStatoChange} />
+        <ChecklistTable items={items} onStatoChange={puoFare('checklist.stato') ? handleStatoChange : null} />
       ) : clienteId ? (
         <div className="text-center py-16 text-gray-400">
           <p className="text-lg mb-2">Nessuna checklist per questo cliente e anno.</p>

@@ -76,8 +76,8 @@ export default function ClienteTable({ clienti, onEdit, onDelete, onCreaCartelli
                       : <IconAlberoCartelle />}
                   </Button>
                 )}
-                <Button size="sm" variant="secondary" onClick={() => onEdit(c)}>Modifica</Button>
-                <Button size="sm" variant="danger" onClick={() => onDelete(c.id)}>Elimina</Button>
+                {onEdit && <Button size="sm" variant="secondary" onClick={() => onEdit(c)}>Modifica</Button>}
+                {onDelete && <Button size="sm" variant="danger" onClick={() => onDelete(c.id)}>Elimina</Button>}
               </td>
             </tr>
           ))}

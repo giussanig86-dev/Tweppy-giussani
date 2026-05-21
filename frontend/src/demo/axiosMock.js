@@ -10,6 +10,11 @@ if (import.meta.env.VITE_DEMO_MODE === 'true') {
   // mutable state
   let clienti = [...m.CLIENTI];
   let tasks = [...m.TASKS];
+  let utenti = [
+    { id: 'u1', email: 'admin@studio.it',         nome: 'Giorgio Demo',  ruolo: 'admin' },
+    { id: 'u2', email: 'mario@studio.it',          nome: 'Mario Rossi',   ruolo: 'collaboratore' },
+    { id: 'u3', email: 'anna@studio.it',           nome: 'Anna Verdi',    ruolo: 'visualizzatore' },
+  ];
   let checklist = [...m.CHECKLIST];
   let adempimenti = [...m.ADEMPIMENTI];
   let attivita = [...m.ATTIVITA];
@@ -297,6 +302,16 @@ if (import.meta.env.VITE_DEMO_MODE === 'true') {
     }
 
     // ── OCR ────────────────────────────────────────────────────────────────
+    if (url === '/api/auth/me') return ok({ email: 'admin@studio.it', nome: 'Giorgio Demo', ruolo: 'admin' });
+
+    if (url.startsWith('/api/utenti')) {
+      const id = url.split('/')[3];
+      if (m2 === 'get') return ok(utenti);
+      if (m2 === 'post') { const n = { id: uuid(), ...body }; utenti.push(n); return ok(n, 201); }
+      if (m2 === 'put') { utenti = utenti.map(u => u.id === id ? { ...u, ...body } : u); return ok({ success: true }); }
+      if (m2 === 'delete') { utenti = utenti.filter(u => u.id !== id); return ok({ success: true }); }
+    }
+
     if (url.startsWith('/api/ocr')) {
       if (url.includes('/estrai')) return ok({ ragioneSociale: 'Demo SpA', codiceFiscale: 'DMOSPA00A00H501Z', tipo: 'visura_camerale', note: 'Documento analizzato in modalità demo' });
       if (url.includes('/salva')) return ok({ success: true });

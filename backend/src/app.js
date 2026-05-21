@@ -13,6 +13,8 @@ const calendarioRoutes = require('./routes/calendario');
 const emailRoutes = require('./routes/email');
 const workflowRoutes = require('./routes/workflow');
 const parcellazioneRoutes = require('./routes/parcellazione');
+const authRoutes = require('./routes/auth');
+const utentiRoutes = require('./routes/utenti');
 
 const app = express();
 
@@ -31,6 +33,8 @@ app.use('/api/calendario', authMiddleware, calendarioRoutes);
 app.use('/api/email', authMiddleware, emailRoutes);
 app.use('/api/workflow', authMiddleware, workflowRoutes);
 app.use('/api/parcellazione', authMiddleware, parcellazioneRoutes);
+app.use('/api/auth', authMiddleware, authRoutes);
+app.use('/api/utenti', authMiddleware, utentiRoutes);
 
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => console.log(`Backend in ascolto su porta ${PORT}`));

@@ -2,13 +2,14 @@ import { useState, useRef, useEffect } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import { useAuth } from '../../auth/useAuth';
+import { useRuolo } from '../../context/RuoloContext';
 
-const NAV_ITEMS = [
-  { to: '/anagrafica', label: 'Anagrafica' },
-  { to: '/documenti', label: 'Documenti' },
-  { to: '/ocr', label: 'OCR' },
-  { to: '/workflow', label: 'Workflow' },
-  { to: '/parcellazione', label: 'Parcellazione' },
+const NAV_BASE = [
+  { to: '/anagrafica',   label: 'Anagrafica' },
+  { to: '/documenti',    label: 'Documenti' },
+  { to: '/ocr',          label: 'OCR' },
+  { to: '/workflow',     label: 'Workflow' },
+  { to: '/parcellazione',label: 'Parcellazione' },
 ];
 
 const QUICK_CREATE = [
@@ -19,6 +20,7 @@ const QUICK_CREATE = [
 
 export default function Shell({ children }) {
   const { account, logout } = useAuth();
+  const { ruolo } = useRuolo();
   const navigate = useNavigate();
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef(null);
@@ -42,7 +44,7 @@ export default function Shell({ children }) {
       <div className="flex-1 flex flex-col">
         <header className="h-14 bg-white border-b flex items-center justify-between px-6 shrink-0">
           <nav className="flex items-center gap-1">
-            {NAV_ITEMS.map(item => (
+            {[...NAV_BASE, ...(ruolo === 'admin' ? [{ to: '/utenti', label: '👥 Utenti' }] : [])].map(item => (
               <NavLink
                 key={item.to}
                 to={item.to}

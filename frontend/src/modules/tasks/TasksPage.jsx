@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../../auth/useAuth';
+import { useRuolo } from '../../context/RuoloContext';
 import { tasksApi } from '../../api/tasks';
 import TaskList from './TaskList';
 import TaskChat from './TaskChat';
@@ -9,6 +10,7 @@ import Button from '../../components/ui/Button';
 
 export default function TasksPage() {
   const { getToken } = useAuth();
+  const { puoFare } = useRuolo();
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -74,7 +76,7 @@ export default function TasksPage() {
             />
             Mostra completati
           </label>
-          <Button onClick={openNew}>+ Nuovo Task</Button>
+          {puoFare('task.write') && <Button onClick={openNew}>+ Nuovo Task</Button>}
         </div>
       </div>
 

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../../auth/useAuth';
+import { useRuolo } from '../../context/RuoloContext';
 import { parcellazioneApi } from '../../api/parcellazione';
 import { anagraficaApi } from '../../api/anagrafica';
 import AttivitaForm from './AttivitaForm';
@@ -13,6 +14,7 @@ const fmt = (n) => `€ ${Number(n || 0).toLocaleString('it-IT', { minimumFracti
 
 export default function ParcellazionePage() {
   const { getToken } = useAuth();
+  const { puoFare } = useRuolo();
   const [tab, setTab] = useState(0);
   const [tariffario, setTariffario] = useState(null);
   const [clienti, setClienti] = useState([]);
@@ -127,8 +129,8 @@ export default function ParcellazionePage() {
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold">Parcellazione LAPET</h1>
         <div className="flex gap-2">
-          <Button variant="secondary" onClick={openImport}>Importa da Task</Button>
-          <Button onClick={() => { setEditItem(null); setModalOpen(true); }}>+ Nuova Attività</Button>
+          {puoFare('parcellazione.write') && <Button variant="secondary" onClick={openImport}>Importa da Task</Button>}
+          {puoFare('parcellazione.write') && <Button onClick={() => { setEditItem(null); setModalOpen(true); }}>+ Nuova Attività</Button>}
         </div>
       </div>
 
@@ -223,6 +225,7 @@ export default function ParcellazionePage() {
 function RegistroTab({ attivita, clienti, filtroCliente, setFiltroCliente, filtroAnno, setFiltroAnno,
   filtroFatturato, setFiltroFatturato, selectedIds, toggleSelect, onEdit, onDelete, onFattura, daFatturare }) {
 
+  const { puoFare } = useRuolo();
   const anni = [];
   for (let y = new Date().getFullYear(); y >= 2020; y--) anni.push(y);
 
@@ -246,7 +249,7 @@ function RegistroTab({ attivita, clienti, filtroCliente, setFiltroCliente, filtr
           <option value="false">Da fatturare</option>
           <option value="true">Già fatturati</option>
         </select>
-        {selectedIds.length > 0 && (
+        {selectedIds.length > 0 && puoFare('parcellazione.write') && (
           <Button size="sm" onClick={onFattura}>
             Segna come fatturati ({selectedIds.length})
           </Button>
@@ -298,8 +301,8 @@ function RegistroTab({ attivita, clienti, filtroCliente, setFiltroCliente, filtr
                   </td>
                   <td className="py-2">
                     <div className="flex gap-1">
-                      <Button size="sm" variant="secondary" onClick={() => onEdit(a)}>Modifica</Button>
-                      <Button size="sm" variant="danger" onClick={() => onDelete(a.id)}>X</Button>
+                      {puoFare('parcellazione.write') && <Button size="sm" variant="secondary" onClick={() => onEdit(a)}>Modifica</Button>}
+                      {puoFare('parcellazione.write') && <Button size="sm" variant="danger" onClick={() => onDelete(a.id)}>X</Button>}
                     </div>
                   </td>
                 </tr>

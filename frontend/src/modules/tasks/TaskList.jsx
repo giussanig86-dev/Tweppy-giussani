@@ -1,5 +1,6 @@
 import Button from '../../components/ui/Button';
 import SharePointClienteLink from '../../components/ui/SharePointClienteLink';
+import { useRuolo } from '../../context/RuoloContext';
 
 const PRIORITY_BADGE = {
   alta: 'bg-red-100 text-red-700',
@@ -30,6 +31,7 @@ function isOverdue(task) {
 }
 
 export default function TaskList({ tasks, onEdit, onDelete, onSelect, selectedId }) {
+  const { puoFare } = useRuolo();
   const sorted = [...tasks].sort((a, b) => {
     const da = a.scadenza ? new Date(a.scadenza) : Infinity;
     const db = b.scadenza ? new Date(b.scadenza) : Infinity;
@@ -86,8 +88,8 @@ export default function TaskList({ tasks, onEdit, onDelete, onSelect, selectedId
             )}
 
             <div className="flex gap-1 shrink-0" onClick={(e) => e.stopPropagation()}>
-              <Button size="sm" variant="secondary" className="!px-2 !py-1 text-xs" onClick={() => onEdit(task)}>✏️</Button>
-              <Button size="sm" variant="danger" className="!px-2 !py-1 text-xs" onClick={() => onDelete(task.id)}>✕</Button>
+              {puoFare('task.write') && <Button size="sm" variant="secondary" className="!px-2 !py-1 text-xs" onClick={() => onEdit(task)}>✏️</Button>}
+              {puoFare('task.write') && <Button size="sm" variant="danger" className="!px-2 !py-1 text-xs" onClick={() => onDelete(task.id)}>✕</Button>}
             </div>
           </div>
         );

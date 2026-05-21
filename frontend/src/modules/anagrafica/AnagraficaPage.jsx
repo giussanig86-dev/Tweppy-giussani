@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useAuth } from '../../auth/useAuth';
+import { useRuolo } from '../../context/RuoloContext';
 import { anagraficaApi } from '../../api/anagrafica';
 import { checklistApi } from '../../api/checklist';
 import ClienteTable from './ClienteTable';
@@ -10,6 +11,7 @@ import Modal from '../../components/ui/Modal';
 
 export default function AnagraficaPage() {
   const { getToken } = useAuth();
+  const { puoFare } = useRuolo();
   const location = useLocation();
   const [clienti, setClienti] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -92,7 +94,7 @@ export default function AnagraficaPage() {
     <div>
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold">Anagrafica Clienti</h1>
-        <Button onClick={openNew}>+ Nuovo Cliente</Button>
+        {puoFare('anagrafica.edit') && <Button onClick={openNew}>+ Nuovo Cliente</Button>}
       </div>
 
       <div className="mb-4">
@@ -112,9 +114,9 @@ export default function AnagraficaPage() {
       ) : (
         <ClienteTable
           clienti={filtered}
-          onEdit={openEdit}
-          onDelete={handleDelete}
-          onCreaCartelline={handleCreaCartelline}
+          onEdit={puoFare('anagrafica.edit') ? openEdit : null}
+          onDelete={puoFare('anagrafica.edit') ? handleDelete : null}
+          onCreaCartelline={puoFare('anagrafica.cartelle') ? handleCreaCartelline : null}
           creatingFoldersId={creatingFoldersId}
         />
       )}

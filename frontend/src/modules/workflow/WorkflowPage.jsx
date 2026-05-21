@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../../auth/useAuth';
+import { useRuolo } from '../../context/RuoloContext';
 import { anagraficaApi } from '../../api/anagrafica';
 import { workflowApi } from '../../api/workflow';
 import WorkflowBuilder from './WorkflowBuilder';
@@ -11,6 +12,7 @@ const STEP_STATO = { ok: 'bg-green-100 text-green-700', errore: 'bg-red-100 text
 
 export default function WorkflowPage() {
   const { getToken } = useAuth();
+  const { puoFare } = useRuolo();
   const [workflows, setWorkflows] = useState([]);
   const [clienti, setClienti] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -70,7 +72,7 @@ export default function WorkflowPage() {
     <div>
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold">Workflow Engine</h1>
-        <Button onClick={() => openBuilder()}>+ Nuovo Workflow</Button>
+        {puoFare('workflow.edit') && <Button onClick={() => openBuilder()}>+ Nuovo Workflow</Button>}
       </div>
 
       {loading ? <p className="text-gray-500">Caricamento...</p> : (
@@ -171,6 +173,7 @@ export default function WorkflowPage() {
 }
 
 function WorkflowCard({ wf, onAvvia, onEdit, onDelete, predefinito }) {
+  const { puoFare } = useRuolo();
   const steps = wf.steps || [];
   const taskCount = steps.filter(s => s.tipo === 'task').length;
   const docCount = steps.filter(s => s.tipo === 'documento').length;
@@ -192,9 +195,9 @@ function WorkflowCard({ wf, onAvvia, onEdit, onDelete, predefinito }) {
         </div>
       </div>
       <div className="flex gap-2 shrink-0">
-        <Button size="sm" onClick={onAvvia}>Avvia</Button>
-        {!predefinito && onEdit && <Button size="sm" variant="secondary" onClick={onEdit}>Modifica</Button>}
-        {!predefinito && onDelete && <Button size="sm" variant="danger" onClick={onDelete}>Elimina</Button>}
+        {puoFare('workflow.avvia') && <Button size="sm" onClick={onAvvia}>Avvia</Button>}
+        {!predefinito && onEdit && puoFare('workflow.edit') && <Button size="sm" variant="secondary" onClick={onEdit}>Modifica</Button>}
+        {!predefinito && onDelete && puoFare('workflow.edit') && <Button size="sm" variant="danger" onClick={onDelete}>Elimina</Button>}
       </div>
     </div>
   );

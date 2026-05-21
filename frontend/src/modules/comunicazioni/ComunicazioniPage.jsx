@@ -5,6 +5,7 @@ import { emailApi } from '../../api/email';
 import Modal from '../../components/ui/Modal';
 import Button from '../../components/ui/Button';
 import SharePointClienteLink from '../../components/ui/SharePointClienteLink';
+import { useRuolo } from '../../context/RuoloContext';
 import EmailNote from './EmailNote';
 import ComposeModal from './ComposeModal';
 
@@ -130,6 +131,7 @@ function AllegatiPreview({ allegati, messageId, casella }) {
 
 export default function ComunicazioniPage() {
   const { getToken } = useAuth();
+  const { puoFare } = useRuolo();
   const [clienti, setClienti] = useState([]);
   const [caselle, setCaselle] = useState(['me']);
   const [clienteSelezionato, setClienteSelezionato] = useState(null);
@@ -324,9 +326,11 @@ export default function ComunicazioniPage() {
         </div>
 
         <div className="p-3 border-t">
-          <Button size="sm" variant="secondary" className="w-full" onClick={handleScansiona} disabled={scanning}>
-            {scanning ? 'Scansione...' : '🔄 Scansiona inbox'}
-          </Button>
+          {puoFare('comunicazioni.write') && (
+            <Button size="sm" variant="secondary" className="w-full" onClick={handleScansiona} disabled={scanning}>
+              {scanning ? 'Scansione...' : '🔄 Scansiona inbox'}
+            </Button>
+          )}
           {scanResult && (
             <p className="text-xs text-green-600 text-center mt-1">{scanResult.elaborati} email elaborate</p>
           )}
@@ -368,7 +372,7 @@ export default function ComunicazioniPage() {
                 ))}
               </div>
             )}
-            {clienteSelezionato && (
+            {clienteSelezionato && puoFare('comunicazioni.write') && (
               <button
                 onClick={() => setCompose({ mode: 'new' })}
                 className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-brand-500 text-white rounded-lg hover:bg-brand-600 transition"
@@ -450,20 +454,22 @@ export default function ComunicazioniPage() {
                           casella={item.casella}
                         />
                         <EmailNote messageId={item.messageId} />
-                        <div className="flex gap-2 mt-2 pt-2 border-t">
-                          <button
-                            onClick={(e) => { e.stopPropagation(); setCompose({ mode: 'reply', replyTo: { messageId: item.messageId, subject: item.titolo, fromEmail: item.fromEmail || '', bodyPreview: item.preview || '' } }); }}
-                            className="text-xs bg-brand-50 text-brand-700 hover:bg-brand-100 px-2 py-1 rounded font-medium transition"
-                          >
-                            ↩ Rispondi
-                          </button>
-                          <button
-                            onClick={(e) => { e.stopPropagation(); setTaskModal({ messageId: item.messageId, casella: item.casella, titolo: item.titolo }); setTaskForm({ assegnato: '', priorita: 'media' }); }}
-                            className="text-xs bg-green-50 text-green-700 hover:bg-green-100 px-2 py-1 rounded font-medium transition"
-                          >
-                            ✅ Crea Task
-                          </button>
-                        </div>
+                        {puoFare('comunicazioni.write') && (
+                          <div className="flex gap-2 mt-2 pt-2 border-t">
+                            <button
+                              onClick={(e) => { e.stopPropagation(); setCompose({ mode: 'reply', replyTo: { messageId: item.messageId, subject: item.titolo, fromEmail: item.fromEmail || '', bodyPreview: item.preview || '' } }); }}
+                              className="text-xs bg-brand-50 text-brand-700 hover:bg-brand-100 px-2 py-1 rounded font-medium transition"
+                            >
+                              ↩ Rispondi
+                            </button>
+                            <button
+                              onClick={(e) => { e.stopPropagation(); setTaskModal({ messageId: item.messageId, casella: item.casella, titolo: item.titolo }); setTaskForm({ assegnato: '', priorita: 'media' }); }}
+                              className="text-xs bg-green-50 text-green-700 hover:bg-green-100 px-2 py-1 rounded font-medium transition"
+                            >
+                              ✅ Crea Task
+                            </button>
+                          </div>
+                        )}
                       </div>
                     )}
 

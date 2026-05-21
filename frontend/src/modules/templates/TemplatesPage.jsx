@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../../auth/useAuth';
+import { useRuolo } from '../../context/RuoloContext';
 import { templatesApi } from '../../api/templates';
 import TemplateForm from './TemplateForm';
 import InvioMassivo from './InvioMassivo';
@@ -10,6 +11,7 @@ const TABS = ['Libreria Template', 'Invio Massivo'];
 
 export default function TemplatesPage() {
   const { getToken } = useAuth();
+  const { puoFare } = useRuolo();
   const [tab, setTab] = useState(0);
   const [templates, setTemplates] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -64,7 +66,7 @@ export default function TemplatesPage() {
         <div>
           <div className="flex justify-between items-center mb-4">
             <p className="text-sm text-gray-500">{templates.length} template salvati</p>
-            <Button onClick={openNew}>+ Nuovo Template</Button>
+            {puoFare('templates.edit') && <Button onClick={openNew}>+ Nuovo Template</Button>}
           </div>
 
           {error && <p className="text-red-500 text-sm mb-4">{error}</p>}
@@ -84,8 +86,8 @@ export default function TemplatesPage() {
                       <p className="text-xs text-gray-400 mt-1 line-clamp-2 font-mono">{t.corpo?.slice(0, 100)}...</p>
                     </div>
                     <div className="flex gap-2 shrink-0 ml-4">
-                      <Button size="sm" variant="secondary" onClick={() => openEdit(t)}>Modifica</Button>
-                      <Button size="sm" variant="danger" onClick={() => handleDelete(t.id)}>Elimina</Button>
+                      {puoFare('templates.edit') && <Button size="sm" variant="secondary" onClick={() => openEdit(t)}>Modifica</Button>}
+                      {puoFare('templates.edit') && <Button size="sm" variant="danger" onClick={() => handleDelete(t.id)}>Elimina</Button>}
                     </div>
                   </div>
                 ))}
