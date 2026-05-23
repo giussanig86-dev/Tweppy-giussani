@@ -1,5 +1,7 @@
 import { NavLink } from 'react-router-dom';
 import { useNotifiche } from '../../context/NotificheContext';
+import Tamagotchi from '../ui/Tamagotchi';
+import { useRuolo } from '../../context/RuoloContext';
 
 function Badge({ count }) {
   if (!count) return null;
@@ -12,6 +14,7 @@ function Badge({ count }) {
 
 export default function Sidebar() {
   const { taskCount, emailCount } = useNotifiche();
+  const { ruolo } = useRuolo();
 
   const navItems = [
     { to: '/tasks',         label: 'Task',           badge: taskCount },
@@ -41,7 +44,22 @@ export default function Sidebar() {
             <Badge count={item.badge} />
           </NavLink>
         ))}
+        {ruolo === 'admin' && (
+          <NavLink
+            to="/utenti"
+            className={({ isActive }) =>
+              `flex items-center px-3 py-2 rounded-lg text-sm font-medium transition ${
+                isActive ? 'bg-white/20 text-white' : 'text-white/70 hover:bg-white/10 hover:text-white'
+              }`
+            }
+          >
+            👥 Utenti
+          </NavLink>
+        )}
       </nav>
+      <div className="px-6">
+        <Tamagotchi />
+      </div>
     </aside>
   );
 }
