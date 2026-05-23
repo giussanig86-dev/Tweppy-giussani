@@ -553,6 +553,16 @@ export default function ComunicazioniPage() {
                 <p className="text-xs text-gray-400 mt-0.5">{fmt(emailModal.data)}</p>
               </div>
               <div className="flex items-center gap-2 shrink-0">
+                <a
+                  href={`https://outlook.office.com/mail/id/${encodeURIComponent(emailModal.messageId)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-xs px-2.5 py-1.5 rounded-lg font-medium transition border bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100 flex items-center gap-1"
+                  title="Apri in Outlook"
+                >
+                  <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor"><path d="M24 7.387v13.476A1.14 1.14 0 0122.862 22H7.138A1.14 1.14 0 016 20.863V18h11.862A2.142 2.142 0 0020 15.857V9H22.862A1.14 1.14 0 0124 10.137V7.387zm-6 .474V15.857A1.14 1.14 0 0116.862 17H1.138A1.14 1.14 0 010 15.857V2.143A1.14 1.14 0 011.138 1H10.5l7.5 6.861zM10 2.5H2v12h14V8.5H11a1 1 0 01-1-1V2.5zm1 .621V7h3.88L11 3.121z"/></svg>
+                  Apri in Outlook
+                </a>
                 <button
                   onClick={() => toggleDaGestire(emailModal.messageId)}
                   className={`text-xs px-2.5 py-1.5 rounded-lg font-medium transition border ${
