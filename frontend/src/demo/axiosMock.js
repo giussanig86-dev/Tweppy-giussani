@@ -262,7 +262,9 @@ if (import.meta.env.VITE_DEMO_MODE === 'true') {
         receivedDateTime: new Date().toISOString(),
         body: { contentType: 'html', content: '<p>Buongiorno,</p><p>in allegato troverà la CU 2024 e le spese mediche come richiesto.</p><p>Rimango a disposizione per qualsiasi chiarimento.</p><p>Cordiali saluti,<br>Mario Rossi</p>' },
       });
+      if (url.includes('/rispondi-a-tutti/')) return ok({ success: true });
       if (url.includes('/rispondi/')) return ok({ success: true });
+      if (url.includes('/inoltra/')) return ok({ success: true });
       if (url.includes('/invia')) return ok({ success: true });
       const clienteId = url.split('/storico/')[1]?.split('?')[0];
       if (clienteId) {

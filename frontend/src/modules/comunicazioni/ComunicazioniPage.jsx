@@ -602,16 +602,28 @@ export default function ComunicazioniPage() {
 
             {/* Azioni */}
             {puoFare('comunicazioni.write') && (
-              <div className="flex gap-2 px-5 py-3 border-t shrink-0 bg-gray-50">
-                <button
-                  onClick={() => {
-                    setEmailModal(null);
-                    setCompose({ mode: 'reply', replyTo: { messageId: emailModal.messageId, subject: emailModal.titolo, fromEmail: emailModal.fromEmail || '', bodyPreview: emailModal.preview || '' } });
-                  }}
-                  className="text-sm bg-brand-50 text-brand-700 hover:bg-brand-100 px-4 py-2 rounded-lg font-medium transition"
-                >
-                  ↩ Rispondi
-                </button>
+              <div className="flex flex-wrap gap-2 px-5 py-3 border-t shrink-0 bg-gray-50">
+                {[
+                  { mode: 'reply',    label: '↩ Rispondi',        cls: 'bg-brand-50 text-brand-700 hover:bg-brand-100' },
+                  { mode: 'replyAll', label: '↩↩ Rispondi a tutti', cls: 'bg-brand-50 text-brand-700 hover:bg-brand-100' },
+                  { mode: 'forward',  label: '→ Inoltra',          cls: 'bg-gray-100 text-gray-700 hover:bg-gray-200' },
+                ].map(({ mode, label, cls }) => (
+                  <button key={mode}
+                    onClick={() => {
+                      const snap = emailModal;
+                      setEmailModal(null);
+                      setCompose({ mode, replyTo: {
+                        messageId: snap.messageId,
+                        subject: snap.titolo,
+                        fromEmail: snap.fromEmail || '',
+                        body: corpi[snap.messageId] || '',
+                        bodyPreview: snap.preview || '',
+                        date: snap.data,
+                      }});
+                    }}
+                    className={`text-sm px-4 py-2 rounded-lg font-medium transition ${cls}`}
+                  >{label}</button>
+                ))}
                 <button
                   onClick={() => {
                     setEmailModal(null);

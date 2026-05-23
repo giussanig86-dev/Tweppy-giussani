@@ -5,7 +5,8 @@ const { v4: uuidv4 } = require('uuid');
 const {
   getInboxMessages, getMessageWithAttachments, getClientMessages, getSentToClient,
   getMessage, replyToMessage, streamAttachment,
-  createReplyDraft, addAttachmentToDraft, sendDraft,
+  createReplyDraft, createReplyAllDraft, createForwardDraft,
+  addAttachmentToDraft, sendDraft,
   createDraftMessage, updateDraft,
 } = require('../graph/messages');
 const { getListItems, getListItemById, createListItem } = require('../graph/sharepoint');
@@ -110,50 +111,82 @@ function parseRecipients(str) {
     .map(addr => ({ emailAddress: { address: addr } }));
 }
 
-// Rispondi a un messaggio (con CC/BCC opzionali e allegati via multipart)
+// Helper: crea bozza, imposta corpo HTML + allegati, invia
+async function sendWithDraft(graphToken, draftFn, html, { cc, ccn, a, files, mailbox }) {
+  const draft = await draftFn();
+  const patch = { body: { contentType: 'HTML', content: html || '' } };
+  if (cc) patch.ccRecipients = parseRecipients(cc);
+  if (ccn) patch.bccRecipients = parseRecipients(ccn);
+  if (a) patch.toRecipients = parseRecipients(a);
+  await updateDraft(graphToken, draft.id, patch, mailbox);
+  for (const file of files || []) {
+    await addAttachmentToDraft(graphToken, draft.id, {
+      name: file.originalname,
+      contentType: file.mimetype,
+      contentBytes: file.buffer.toString('base64'),
+    }, mailbox);
+  }
+  await sendDraft(graphToken, draft.id, mailbox);
+}
+
+// Rispondi a un messaggio
 router.post('/rispondi/:messageId', upload.array('files'), async (req, res) => {
   try {
-    const testo = req.body.testo || '';
+    const html = req.body.html || req.body.testo || '';
     const mailbox = req.body.mailbox || 'me';
     const cc = req.body.cc || '';
     const ccn = req.body.ccn || '';
     const { messageId } = req.params;
-
     const msg = await getMessage(req.graphToken, messageId, mailbox);
-
-    const needsDraft = req.files?.length > 0 || cc || ccn;
-    if (needsDraft) {
-      const draft = await createReplyDraft(req.graphToken, messageId, testo, mailbox);
-      if (cc || ccn) {
-        const patch = {};
-        if (cc) patch.ccRecipients = parseRecipients(cc);
-        if (ccn) patch.bccRecipients = parseRecipients(ccn);
-        await updateDraft(req.graphToken, draft.id, patch, mailbox);
-      }
-      for (const file of req.files || []) {
-        await addAttachmentToDraft(req.graphToken, draft.id, {
-          name: file.originalname,
-          contentType: file.mimetype,
-          contentBytes: file.buffer.toString('base64'),
-        }, mailbox);
-      }
-      await sendDraft(req.graphToken, draft.id, mailbox);
-    } else {
-      await replyToMessage(req.graphToken, messageId, testo, mailbox);
-    }
-
-    const clienteId = req.body.clienteId || '';
+    await sendWithDraft(req.graphToken,
+      () => createReplyDraft(req.graphToken, messageId, '', mailbox),
+      html, { cc, ccn, files: req.files, mailbox }
+    );
     await createListItem(req.graphToken, 'Invii_Log', {
-      id: uuidv4(),
-      clienteId,
-      oggetto: `Re: ${msg.subject}`,
-      email: msg.from?.emailAddress?.address || '',
-      corpo: testo,
-      inviatoAt: new Date().toISOString(),
-      esito: 'ok',
-      casella: mailbox,
+      id: uuidv4(), clienteId: req.body.clienteId || '',
+      oggetto: `Re: ${msg.subject}`, email: msg.from?.emailAddress?.address || '',
+      corpo: html, inviatoAt: new Date().toISOString(), esito: 'ok', casella: mailbox,
     });
+    res.json({ success: true });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
 
+// Rispondi a tutti
+router.post('/rispondi-a-tutti/:messageId', upload.array('files'), async (req, res) => {
+  try {
+    const html = req.body.html || req.body.testo || '';
+    const mailbox = req.body.mailbox || 'me';
+    const { messageId } = req.params;
+    const msg = await getMessage(req.graphToken, messageId, mailbox);
+    await sendWithDraft(req.graphToken,
+      () => createReplyAllDraft(req.graphToken, messageId, mailbox),
+      html, { cc: req.body.cc, ccn: req.body.ccn, files: req.files, mailbox }
+    );
+    await createListItem(req.graphToken, 'Invii_Log', {
+      id: uuidv4(), clienteId: req.body.clienteId || '',
+      oggetto: `Re: ${msg.subject}`, email: msg.from?.emailAddress?.address || '',
+      corpo: html, inviatoAt: new Date().toISOString(), esito: 'ok', casella: mailbox,
+    });
+    res.json({ success: true });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// Inoltra
+router.post('/inoltra/:messageId', upload.array('files'), async (req, res) => {
+  try {
+    const html = req.body.html || req.body.testo || '';
+    const mailbox = req.body.mailbox || 'me';
+    const { messageId } = req.params;
+    const msg = await getMessage(req.graphToken, messageId, mailbox);
+    await sendWithDraft(req.graphToken,
+      () => createForwardDraft(req.graphToken, messageId, mailbox),
+      html, { a: req.body.a, cc: req.body.cc, ccn: req.body.ccn, files: req.files, mailbox }
+    );
+    await createListItem(req.graphToken, 'Invii_Log', {
+      id: uuidv4(), clienteId: req.body.clienteId || '',
+      oggetto: `I: ${msg.subject}`, email: req.body.a || '',
+      corpo: html, inviatoAt: new Date().toISOString(), esito: 'ok', casella: mailbox,
+    });
     res.json({ success: true });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
@@ -161,7 +194,8 @@ router.post('/rispondi/:messageId', upload.array('files'), async (req, res) => {
 // Invia nuova email (non in risposta)
 router.post('/invia', upload.array('files'), async (req, res) => {
   try {
-    const { a, cc = '', ccn = '', oggetto, testo = '', clienteId = '' } = req.body;
+    const { a, cc = '', ccn = '', oggetto, clienteId = '' } = req.body;
+    const testo = req.body.html || req.body.testo || '';
     const mailbox = req.body.mailbox || 'me';
     if (!a || !oggetto) return res.status(400).json({ error: 'Destinatario e oggetto obbligatori' });
 

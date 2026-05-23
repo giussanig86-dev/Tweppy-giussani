@@ -22,30 +22,32 @@ export const emailApi = {
     axios.get(`${BASE}/sharepoint-url/${clienteId}`, { headers: h(token) }).then(r => r.data),
   sconosciuti: (token, ore = 168) =>
     axios.get(`${BASE}/sconosciuti`, { params: { ore }, headers: h(token) }).then(r => r.data),
-  rispondi: (token, messageId, { testo, cc = '', ccn = '', mailbox = 'me', files = [] }) => {
-    if (!files || files.length === 0) {
-      return axios.post(`${BASE}/rispondi/${messageId}`, { testo, cc, ccn, mailbox }, { headers: h(token) }).then(r => r.data);
-    }
+  rispondi: (token, messageId, { html = '', cc = '', ccn = '', mailbox = 'me', files = [] }) => {
+    if (!files?.length) return axios.post(`${BASE}/rispondi/${messageId}`, { html, cc, ccn, mailbox }, { headers: h(token) }).then(r => r.data);
     const fd = new FormData();
-    fd.append('testo', testo);
-    fd.append('cc', cc || '');
-    fd.append('ccn', ccn || '');
-    fd.append('mailbox', mailbox);
+    fd.append('html', html); fd.append('cc', cc); fd.append('ccn', ccn); fd.append('mailbox', mailbox);
     files.forEach(f => fd.append('files', f));
     return axios.post(`${BASE}/rispondi/${messageId}`, fd, { headers: h(token) }).then(r => r.data);
   },
-  invia: (token, { a, cc = '', ccn = '', oggetto, testo, mailbox = 'me', clienteId = '', files = [] }) => {
-    if (!files || files.length === 0) {
-      return axios.post(`${BASE}/invia`, { a, cc, ccn, oggetto, testo, mailbox, clienteId }, { headers: h(token) }).then(r => r.data);
-    }
+  rispondiATutti: (token, messageId, { html = '', cc = '', ccn = '', mailbox = 'me', files = [] }) => {
+    if (!files?.length) return axios.post(`${BASE}/rispondi-a-tutti/${messageId}`, { html, cc, ccn, mailbox }, { headers: h(token) }).then(r => r.data);
     const fd = new FormData();
-    fd.append('a', a);
-    fd.append('cc', cc || '');
-    fd.append('ccn', ccn || '');
-    fd.append('oggetto', oggetto);
-    fd.append('testo', testo);
-    fd.append('mailbox', mailbox);
-    fd.append('clienteId', clienteId || '');
+    fd.append('html', html); fd.append('cc', cc); fd.append('ccn', ccn); fd.append('mailbox', mailbox);
+    files.forEach(f => fd.append('files', f));
+    return axios.post(`${BASE}/rispondi-a-tutti/${messageId}`, fd, { headers: h(token) }).then(r => r.data);
+  },
+  inoltra: (token, messageId, { a = '', html = '', cc = '', ccn = '', mailbox = 'me', files = [] }) => {
+    if (!files?.length) return axios.post(`${BASE}/inoltra/${messageId}`, { a, html, cc, ccn, mailbox }, { headers: h(token) }).then(r => r.data);
+    const fd = new FormData();
+    fd.append('a', a); fd.append('html', html); fd.append('cc', cc); fd.append('ccn', ccn); fd.append('mailbox', mailbox);
+    files.forEach(f => fd.append('files', f));
+    return axios.post(`${BASE}/inoltra/${messageId}`, fd, { headers: h(token) }).then(r => r.data);
+  },
+  invia: (token, { a, cc = '', ccn = '', oggetto, html = '', mailbox = 'me', clienteId = '', files = [] }) => {
+    if (!files?.length) return axios.post(`${BASE}/invia`, { a, cc, ccn, oggetto, html, mailbox, clienteId }, { headers: h(token) }).then(r => r.data);
+    const fd = new FormData();
+    fd.append('a', a); fd.append('cc', cc); fd.append('ccn', ccn); fd.append('oggetto', oggetto);
+    fd.append('html', html); fd.append('mailbox', mailbox); fd.append('clienteId', clienteId || '');
     files.forEach(f => fd.append('files', f));
     return axios.post(`${BASE}/invia`, fd, { headers: h(token) }).then(r => r.data);
   },

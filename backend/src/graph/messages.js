@@ -56,6 +56,18 @@ async function createReplyDraft(accessToken, messageId, comment, mailbox = 'me')
   return client.api(`${base}/messages/${messageId}/createReply`).post({ comment });
 }
 
+async function createReplyAllDraft(accessToken, messageId, mailbox = 'me') {
+  const client = createGraphClient(accessToken);
+  const base = mailboxPath(mailbox);
+  return client.api(`${base}/messages/${messageId}/createReplyAll`).post({});
+}
+
+async function createForwardDraft(accessToken, messageId, mailbox = 'me') {
+  const client = createGraphClient(accessToken);
+  const base = mailboxPath(mailbox);
+  return client.api(`${base}/messages/${messageId}/createForward`).post({});
+}
+
 async function addAttachmentToDraft(accessToken, draftId, attachment, mailbox = 'me') {
   const client = createGraphClient(accessToken);
   const base = mailboxPath(mailbox);
@@ -94,7 +106,7 @@ async function createDraftMessage(accessToken, { to, subject, body, cc = '', ccn
   const base = mailboxPath(mailbox);
   const message = {
     subject,
-    body: { contentType: 'Text', content: body },
+    body: { contentType: 'HTML', content: body },
     toRecipients: parseRecipients(to),
   };
   if (cc) message.ccRecipients = parseRecipients(cc);
@@ -117,6 +129,8 @@ module.exports = {
   replyToMessage,
   streamAttachment,
   createReplyDraft,
+  createReplyAllDraft,
+  createForwardDraft,
   addAttachmentToDraft,
   sendDraft,
   createDraftMessage,
