@@ -140,7 +140,7 @@ if (import.meta.env.VITE_DEMO_MODE === 'true') {
       }
       if (m2 === 'post' && url.includes('/genera')) {
         // Simulate .docx download with a simple text blob
-        const blob = new Blob(['[Demo] Documento generato da GDS Studio\n\nContenuto simulato per la modalità demo.'], { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
+        const blob = new Blob(['[Demo] Documento generato da Velia GDS\n\nContenuto simulato per la modalità demo.'], { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
         const link = document.createElement('a');
         link.href = URL.createObjectURL(blob);
         link.download = `${body?.templateId || 'documento'}_demo.docx`;

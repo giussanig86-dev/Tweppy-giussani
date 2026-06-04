@@ -27,7 +27,7 @@ export default function Sidebar() {
   return (
     <aside className="w-56 min-h-screen bg-brand-900 text-white flex flex-col py-6">
       <div className="px-6 mb-8">
-        <span className="text-xl font-bold tracking-tight">GDS Studio</span>
+        <span className="text-xl font-bold tracking-tight">Velia GDS</span>
       </div>
       <nav className="flex-1 space-y-1 px-3">
         {navItems.map((item) => (

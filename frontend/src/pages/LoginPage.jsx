@@ -11,7 +11,7 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-brand-900">
       <div className="bg-white rounded-2xl shadow-xl p-10 w-full max-w-sm text-center">
-        <h1 className="text-2xl font-bold text-brand-900 mb-2">GDS Studio</h1>
+        <h1 className="text-2xl font-bold text-brand-900 mb-2">Velia GDS</h1>
         <p className="text-gray-500 mb-8 text-sm">Gestione Studio Tributario</p>
         <button
           onClick={login}

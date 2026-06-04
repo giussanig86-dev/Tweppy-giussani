@@ -115,7 +115,7 @@ export default function OutlookAddinPage() {
     <div className="bg-white min-h-screen font-sans text-sm">
       {/* Header */}
       <div className="px-4 py-3 border-b bg-gray-50">
-        <p className="text-[10px] text-gray-400 uppercase tracking-wide font-semibold mb-0.5">GDS Studio CRM</p>
+        <p className="text-[10px] text-gray-400 uppercase tracking-wide font-semibold mb-0.5">Velia GDS CRM</p>
         {stato === 'trovato' ? (
           <>
             <p className="font-semibold text-gray-800 truncate">{cliente.ragioneSociale}</p>
