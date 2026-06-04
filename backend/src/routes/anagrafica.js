@@ -48,7 +48,14 @@ router.post('/', async (req, res) => {
     };
 
     const created = await createListItem(req.graphToken, LIST_NAME, fields);
-    res.status(201).json(created);
+
+    // Crea automaticamente le cartelle SharePoint per il nuovo cliente
+    let cartelline = null;
+    try {
+      cartelline = await createClientFolders(req.graphToken, fields.ragioneSociale);
+    } catch {}
+
+    res.status(201).json({ ...created, cartelline });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
